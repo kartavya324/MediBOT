@@ -8,12 +8,14 @@ import LoginGateway from './components/LoginGateway';
 import PatientDashboard from './components/PatientDashboard';
 import DoctorDashboard from './components/DoctorDashboard';
 import ProfileEditor from './components/ProfileEditor';
+import DoctorProfileEditor from './components/DoctorProfileEditor';
 import { onAuthStateChanged, signOut } from 'firebase/auth';
 import { doc, getDoc } from 'firebase/firestore';
 import { auth, db } from './lib/firebase';
 import { Loader2 } from 'lucide-react';
 import { usePatientStore } from './store/usePatientStore';
 import { getPatient, createPatientDoc } from './lib/patientService';
+import { useThemeStore } from './store/useThemeStore';
 
 type Role = 'patient' | 'doctor';
 
@@ -23,34 +25,59 @@ export default function App() {
   const [userEmail, setUserEmail] = useState('');
   const [isInitializing, setIsInitializing] = useState(true);
   const [showProfileSetup, setShowProfileSetup] = useState(false);
+  const [showDoctorSetup, setShowDoctorSetup] = useState(false);
   const { setUid, setProfile, clearStore } = usePatientStore();
+  const { isDarkMode } = useThemeStore();
+
+  useEffect(() => {
+    if (isDarkMode) {
+      document.documentElement.classList.add('dark');
+    } else {
+      document.documentElement.classList.remove('dark');
+    }
+  }, [isDarkMode]);
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
       if (user) {
-        const userDoc = await getDoc(doc(db, 'users', user.uid));
+        const userDocRef = doc(db, 'users', user.uid);
+        const userDoc = await getDoc(userDocRef);
         let detectedRole: Role = 'patient';
+
         if (userDoc.exists()) {
           const userData = userDoc.data();
           detectedRole = userData.role as Role;
           setRole(detectedRole);
         }
+
         setUserEmail(user.email || '');
         setUid(user.uid);
 
-        // Load patient profile into global store (patients only)
         if (detectedRole === 'patient') {
           let profile = await getPatient(user.uid);
+
+          const hasCompletedSetup =
+            userDoc.exists() && userDoc.data().hasCompletedSetup === true;
+          const hasValidName = profile?.name && profile.name.trim().length > 0;
+
           if (!profile) {
-            // Brand-new patient — create empty doc, prompt setup wizard
             await createPatientDoc(user.uid, user.displayName || '');
             profile = await getPatient(user.uid);
             setShowProfileSetup(true);
-          } else if (!profile.name) {
-            // Existing doc but profile never completed
+          } else if (!hasCompletedSetup || !hasValidName) {
             setShowProfileSetup(true);
           }
+
           if (profile) setProfile(profile);
+        }
+
+        // Doctor setup gatekeeper
+        if (detectedRole === 'doctor') {
+          const hasCompletedSetup =
+            userDoc.exists() && userDoc.data().hasCompletedSetup === true;
+          if (!hasCompletedSetup) {
+            setShowDoctorSetup(true);
+          }
         }
 
         setIsLoggedIn(true);
@@ -85,9 +112,16 @@ export default function App() {
 
   if (isInitializing) {
     return (
-      <div className="min-h-screen bg-[#0F1015] flex flex-col items-center justify-center text-white">
-        <Loader2 className="w-12 h-12 text-sky-500 animate-spin mb-4" />
-        <p className="text-slate-400 font-medium">Initializing MediSync Hub...</p>
+      <div className="min-h-screen bg-stone-50 dark:bg-teal-950 flex flex-col items-center justify-center text-slate-900 dark:text-white gap-4">
+        <div className="relative">
+          <div className="w-16 h-16 bg-emerald-500/10 ring-1 ring-emerald-500/20 rounded-2xl flex items-center justify-center">
+            <Loader2 className="w-7 h-7 text-emerald-500 animate-spin absolute" />
+          </div>
+        </div>
+        <div className="text-center">
+          <p className="text-slate-900 dark:text-white font-bold text-lg">Medi<span className="text-emerald-500">BOT</span></p>
+          <p className="text-slate-500 dark:text-teal-400 text-sm mt-0.5">Initializing AI Engine…</p>
+        </div>
       </div>
     );
   }
@@ -107,6 +141,12 @@ export default function App() {
         <ProfileEditor
           isFirstTime
           onClose={() => setShowProfileSetup(false)}
+        />
+      )}
+      {showDoctorSetup && role === 'doctor' && (
+        <DoctorProfileEditor
+          isFirstTime
+          onClose={() => setShowDoctorSetup(false)}
         />
       )}
     </>

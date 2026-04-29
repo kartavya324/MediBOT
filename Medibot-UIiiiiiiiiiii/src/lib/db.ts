@@ -1,5 +1,5 @@
 /**
- * MediSync Local Database (IndexedDB via Dexie.js)
+ * MediBOT Local Database (IndexedDB via Dexie.js)
  * 
  * PURPOSE: Offline-First Data Persistence
  * This module provides a local database for storing patient data,
@@ -66,14 +66,14 @@ export interface VitalsSnapshot {
 
 // ----- Database Class -----
 
-class MediSyncDB extends Dexie {
+class MediBotDB extends Dexie {
   patients!: Table<PatientRecord>;
   chatHistory!: Table<ChatMessage>;
   diagnostics!: Table<DiagnosticResult>;
   vitals!: Table<VitalsSnapshot>;
 
   constructor() {
-    super('MediSyncOfflineDB');
+    super('MediBotOfflineDB');
 
     this.version(1).stores({
       patients: '++id, patientId, name',
@@ -85,7 +85,7 @@ class MediSyncDB extends Dexie {
 }
 
 // ----- Singleton Instance -----
-export const db = new MediSyncDB();
+export const db = new MediBotDB();
 
 // ----- Helper Functions -----
 

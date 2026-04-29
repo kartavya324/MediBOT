@@ -1,19 +1,13 @@
 @import "tailwindcss";
+@variant dark (&:where(.dark, .dark *));
 
 @theme {
-  --color-brand-bg: #0F1015;
-  --color-brand-surface: #1A1C23;
-  --color-brand-sidebar: #121318;
-  --color-brand-accent: #0D6EFD;
-  --color-brand-text: #F8FAFC;
-  --color-brand-muted: #94A3B8;
   --font-sans: 'Inter', sans-serif;
   --font-display: 'Outfit', sans-serif;
 }
 
 body {
-  background-color: var(--color-brand-bg);
-  color: var(--color-brand-text);
+  @apply bg-stone-50 text-slate-900 dark:bg-teal-950 dark:text-white;
   font-family: var(--font-sans);
   -webkit-font-smoothing: antialiased;
 }
@@ -23,13 +17,10 @@ h1, h2, h3, h4, h5, h6 {
 }
 
 .glass-card {
-  background: rgba(26, 28, 35, 0.7);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
-  border: 1px solid rgba(255, 255, 255, 0.05);
+  @apply bg-white/70 dark:bg-teal-900/70 backdrop-blur-xl border border-stone-200 dark:border-teal-800;
 }
 
-/* Custom Webkit Scrollbar for dark theme */
+/* Custom Webkit Scrollbar */
 ::-webkit-scrollbar {
   width: 6px;
   height: 6px;
@@ -38,9 +29,8 @@ h1, h2, h3, h4, h5, h6 {
   background: transparent; 
 }
 ::-webkit-scrollbar-thumb {
-  background: rgba(255,255,255,0.1); 
-  border-radius: 10px;
+  @apply bg-stone-300 dark:bg-teal-800 rounded-full;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: rgba(255,255,255,0.2); 
+  @apply bg-stone-400 dark:bg-teal-700;
 }

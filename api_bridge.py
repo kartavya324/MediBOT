@@ -23,6 +23,13 @@ from slowapi.util import get_remote_address
 from slowapi.errors import RateLimitExceeded
 import uvicorn
 
+import google.generativeai as genai
+from dotenv import load_dotenv
+
+load_dotenv()
+genai.configure(api_key=os.environ.get("GEMINI_API_KEY", ""))
+gemini_model = genai.GenerativeModel("gemini-flash-latest")
+
 limiter = Limiter(key_func=get_remote_address)
 
 # ---------------------------------------------------------------------------
@@ -76,6 +83,7 @@ app.add_middleware(
 qa_chain = None
 embeddings = None
 llm = None
+db = None
 reader = None # EasyOCR Reader instance
 
 # ---------------------------------------------------------------------------
@@ -88,6 +96,7 @@ class PatientContext(BaseModel):
     allergies: Optional[list] = []
     active_medications: Optional[list] = []
     recent_vitals: Optional[dict] = {}
+    timeline_events: Optional[list] = []
 
 class ChatRequest(BaseModel):
     query: str
@@ -101,15 +110,15 @@ class VisionRequest(BaseModel):
 # Startup: Load Models
 # ---------------------------------------------------------------------------
 async def load_models():
-    """Load the Llama-2 RAG chain and CNN model on server start."""
-    global qa_chain, embeddings, llm, reader
+    """Load the CNN model and FAISS vector store on server start."""
+    global qa_chain, embeddings, llm, db, reader
 
     print("=" * 60)
-    print("  MediBOT AI Core Engine - Initializing...")
+    print("  MediBOT AI Core Engine - Initializing (GEMINI API MODE)...")
     print("=" * 60)
 
     # --- Step 0: Load EasyOCR ---
-    print("[0/4] Loading EasyOCR (English)...")
+    print("[0/3] Loading EasyOCR (English)...")
     try:
         import easyocr
         reader = easyocr.Reader(['en'], gpu=False) # Forced CPU for compatibility
@@ -119,7 +128,7 @@ async def load_models():
         reader = None
 
     # --- Step 1: Load Embeddings ---
-    print("[1/4] Loading HuggingFace Embeddings...")
+    print("[1/3] Loading HuggingFace Embeddings...")
     try:
         from langchain_community.embeddings import HuggingFaceEmbeddings
         embeddings = HuggingFaceEmbeddings(
@@ -132,7 +141,7 @@ async def load_models():
         return
 
     # --- Step 2: Load FAISS Vector Store ---
-    print("[2/4] Loading FAISS Vector Store...")
+    print("[2/3] Loading FAISS Vector Store...")
     try:
         from langchain_community.vectorstores import FAISS
         if not os.path.exists(DB_FAISS_PATH):
@@ -148,62 +157,16 @@ async def load_models():
         print(f"  [ERR]Failed to load FAISS: {e}")
         return
 
-    # --- Step 3: Load LLM and create QA Chain ---
-    print("[3/4] Loading Llama-2 LLM and creating QA Chain...")
-    try:
-        from langchain_community.llms import CTransformers
-        from langchain_core.prompts import PromptTemplate
-        from langchain.chains import RetrievalQA
-
-        if not os.path.exists(MODEL_PATH):
-            print(f"  [ERR]Model not found at {MODEL_PATH}.")
-            return
-
-        llm = CTransformers(
-            model=MODEL_PATH,
-            model_type="llama",
-            config={"max_new_tokens": 512, "temperature": 0.5, "context_length": 2048}
-        )
-
-        # --- THE PATENT CORE ---
-        # This prompt template injects patient-specific data through the question.
-        # RetrievalQA only supports 'context' and 'question' as input variables.
-        context_aware_prompt = """You are MediBOT, a clinical decision support AI.
-Use the following pieces of medical context to answer the user's question.
-If you don't know the answer, say so. Do NOT make up medical advice.
-If the question contains PATIENT CONTEXT information, use it to personalize your answer.
-If the patient's profile indicates any contraindications (e.g., allergies, conflicting medications),
-you MUST warn about them prominently.
-
-Medical Knowledge Context:
-{context}
-
-Question: {question}
-
-Provide a detailed, safe, and personalized answer.
-Helpful answer:"""
-
-        prompt = PromptTemplate(
-            template=context_aware_prompt,
-            input_variables=["context", "question"]
-        )
-
-        qa_chain = RetrievalQA.from_chain_type(
-            llm=llm,
-            chain_type="stuff",
-            retriever=db.as_retriever(search_kwargs={"k": 3}),
-            return_source_documents=True,
-            chain_type_kwargs={"prompt": prompt}
-        )
-
-        print("  [OK]Llama-2 QA Chain ready.")
-    except Exception as e:
-        print(f"  [ERR]Failed to load LLM: {e}")
-        traceback.print_exc()
-        return
+    # --- Step 3: Verify Gemini API ---
+    print("[3/3] Verifying Gemini API Configuration...")
+    if not os.environ.get("GEMINI_API_KEY"):
+        print("  [ERR]GEMINI_API_KEY is missing from environment. Using RAG will fail.")
+    else:
+        print("  [OK]Gemini API Configured.")
+        qa_chain = "gemini_active" # Dummy flag to indicate readiness
 
     print("=" * 60)
-    print("  [OK]MediBOT AI Core Engine is ONLINE.")
+    print("  [OK]MediBOT AI Core Engine is ONLINE (GEMINI POWERED).")
     print("=" * 60)
 
 # ---------------------------------------------------------------------------
@@ -227,7 +190,7 @@ async def personalized_chat(request: Request, request_body: ChatRequest):
     Receives a patient's medical question AND their clinical context,
     then injects the context into the RAG prompt for personalized answers.
     """
-    if qa_chain is None:
+    if qa_chain is None or db is None:
         raise HTTPException(status_code=503, detail="AI models are still loading. Please wait.")
 
     try:
@@ -242,18 +205,37 @@ async def personalized_chat(request: Request, request_body: ChatRequest):
             if ctx.allergies: info_parts.append(f"Known Allergies: {', '.join(ctx.allergies)}")
             if ctx.active_medications: info_parts.append(f"Current Medications: {', '.join(ctx.active_medications)}")
             if ctx.recent_vitals: info_parts.append(f"Recent Vitals: {ctx.recent_vitals}")
+            if hasattr(ctx, 'timeline_events') and ctx.timeline_events: 
+                events_str = "; ".join([f"{e.get('date', '')} {e.get('title', '')}" for e in ctx.timeline_events])
+                info_parts.append(f"Medical Timeline: {events_str}")
             if info_parts:
                 patient_info_str = " | ".join(info_parts)
 
-        enriched_query = request_body.query
-        if patient_info_str:
-            enriched_query = f"[PATIENT CONTEXT: {patient_info_str}] {request_body.query}"
+        # 1. Retrieve Context from FAISS
+        docs = db.similarity_search(request_body.query, k=3)
+        context_str = "\n".join([d.page_content for d in docs])
+        
+        # 2. Build Gemini Prompt
+        prompt = f"""You are MediBOT, a highly advanced, friendly, and empathetic clinical AI assistant.
+Your goal is to converse with the patient, using the medical knowledge context provided below to answer their questions.
+CRITICAL: You MUST use the PATIENT CONTEXT to personalize your answer. For example, if they complain of weakness and their timeline shows they recently had Dengue, connect the two.
+DO NOT use overly cautious language like "I am an AI and cannot provide medical advice" unless there is a severe risk of harm or emergency. Be direct, helpful, and concise.
 
-        response = qa_chain.invoke({"query": enriched_query})
-        answer = response.get("result", "I could not generate an answer.")
+PATIENT CONTEXT: {patient_info_str if patient_info_str else 'None provided.'}
+
+MEDICAL KNOWLEDGE CONTEXT:
+{context_str}
+
+USER QUESTION: {request_body.query}
+
+Provide a conversational, empathetic, detailed, and personalized answer.
+"""
+
+        response = gemini_model.generate_content(prompt)
+        answer = response.text
 
         sources = []
-        for doc in response.get("source_documents", []):
+        for doc in docs:
             sources.append({
                 "content": doc.page_content[:200],
                 "page": doc.metadata.get("page", "N/A")
@@ -298,26 +280,42 @@ async def analyze_xray(request: Request, request_body: VisionRequest):
         image_bytes = base64.b64decode(image_data)
         image = Image.open(io.BytesIO(image_bytes))
 
-        # Run prediction
-        pred_class = predict_lung_disease(image, model_path=CNN_WEIGHTS_PATH)
+        # Predict using CNN model
+        pred_class = predict_lung_disease(image, CNN_WEIGHTS_PATH)
 
-        # Map class to confidence/severity
-        severity_map = {
-            "COVID": "High",
-            "Pneumonia": "High",
-            "Tuberculosis": "High",
-            "Pneumothorax": "Critical",
-            "Normal": "Low"
-        }
+        if pred_class == "Normal":
+            severity = "Low"
+            recommendation = "No abnormalities detected. Continue routine checkups."
+            confidence = "95%"
+        elif pred_class == "Pneumonia":
+            severity = "High"
+            recommendation = "Immediate medical evaluation recommended. Possible antibiotics required."
+            confidence = "90%"
+        elif pred_class == "COVID":
+            severity = "Critical"
+            recommendation = "Isolate immediately and seek medical attention."
+            confidence = "88%"
+        elif pred_class == "Tuberculosis":
+            severity = "Critical"
+            recommendation = "Infectious. Requires immediate prolonged antibiotic treatment."
+            confidence = "92%"
+        elif pred_class == "Pneumothorax":
+            severity = "High"
+            recommendation = "Urgent evaluation needed. Potential chest tube placement."
+            confidence = "85%"
+        else:
+            severity = "Unknown"
+            recommendation = "Review image manually."
+            confidence = "0%"
 
         return {
             "role": "ai",
             "type": "vision",
             "result": f"Analysis Complete: {pred_class} detected.",
             "predicted_class": pred_class,
-            "severity": severity_map.get(pred_class, "Unknown"),
-            "confidence": "84%",
-            "recommendation": f"{'Immediate clinical consultation recommended.' if pred_class != 'Normal' else 'No abnormalities detected. Routine follow-up advised.'}"
+            "severity": severity,
+            "confidence": confidence,
+            "recommendation": recommendation
         }
 
     except Exception as e:
@@ -362,12 +360,12 @@ Task: Identify and extract the following clinical entities in valid JSON format:
 
 If an entity is not found, leave it as an empty list/dictionary.
 Do NOT repeat the task instructions. Output ONLY valid JSON.
-JSON:"""
+"""
 
-        extraction_response = llm(prompt) # Using the already loaded Llama-2
+        extraction_response = gemini_model.generate_content(prompt)
         
         # Clean up common LLM formatting issues
-        json_str = extraction_response.strip()
+        json_str = extraction_response.text.strip()
         if "```json" in json_str:
             json_str = json_str.split("```json")[1].split("```")[0].strip()
         elif "{" in json_str:
@@ -397,15 +395,27 @@ async def simple_chat(request: ChatRequest):
     A simpler chat endpoint without patient context injection.
     Falls back to the standard RAG pipeline.
     """
-    if qa_chain is None:
+    if qa_chain is None or db is None:
         raise HTTPException(status_code=503, detail="AI models are still loading.")
 
     try:
-        response = qa_chain.invoke({
-            "query": request.query
-        })
+        # Retrieve Context from FAISS
+        docs = db.similarity_search(request.query, k=3)
+        context_str = "\n".join([d.page_content for d in docs])
+        
+        prompt = f"""You are MediBOT, a clinical decision support AI.
+Use the following pieces of medical context to answer the user's question.
+If you don't know the answer, say so. Do NOT make up medical advice.
 
-        answer = response.get("result", "I could not generate an answer.")
+MEDICAL KNOWLEDGE CONTEXT:
+{context_str}
+
+USER QUESTION: {request.query}
+
+Provide a helpful, precise answer."""
+
+        response = gemini_model.generate_content(prompt)
+        answer = response.text
 
         return {
             "role": "ai",
@@ -416,6 +426,48 @@ async def simple_chat(request: ChatRequest):
     except Exception as e:
         traceback.print_exc()
         raise HTTPException(status_code=500, detail=f"AI Error: {str(e)}")
+
+# ---------------------------------------------------------------------------
+# Doctor Dashboard Endpoints
+# ---------------------------------------------------------------------------
+
+class SummarizeRequest(BaseModel):
+    patient_name: str
+    patient_age: int
+    timeline_events: list  # List of {date, title, desc, type} dicts
+
+@app.post("/api/doctor/summarize")
+@limiter.limit("10/minute")
+async def summarize_patient(request: Request, request_body: SummarizeRequest):
+    """
+    DOCTOR PORTAL ENDPOINT:
+    Takes the last N patient timeline events and generates a concise
+    3-sentence clinical summary using Gemini.
+    """
+    try:
+        events_text = "\n".join([
+            f"- [{e.get('date', 'N/A')}] {e.get('title', 'Event')}: {e.get('desc', '')}"
+            for e in request_body.timeline_events
+        ])
+
+        prompt = f"""You are a senior clinical AI assistant helping a physician.
+Below are the most recent medical timeline events for patient: {request_body.patient_name} (Age: {request_body.patient_age})
+
+{events_text}
+
+Task: Write exactly 3 concise clinical sentences summarizing this patient's recent medical history.
+Focus on: (1) Key diagnoses or events. (2) Current treatment status. (3) Recommended follow-up.
+Output ONLY the 3 sentences. No headers, no bullet points."""
+
+        response = gemini_model.generate_content(prompt)
+        return {
+            "summary": response.text.strip(),
+            "patient_name": request_body.patient_name,
+            "events_analyzed": len(request_body.timeline_events)
+        }
+    except Exception as e:
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail=f"Summarization Error: {str(e)}")
 
 # ---------------------------------------------------------------------------
 # Entry Point

@@ -11,15 +11,16 @@ createRoot(document.getElementById('root')!).render(
       position="top-right"
       toastOptions={{
         style: {
-          background: '#1A1C23',
-          color: '#e2e8f0',
-          border: '1px solid rgba(255,255,255,0.08)',
-          borderRadius: '12px',
+          background: 'rgba(255, 255, 255, 0.9)',
+          color: '#0f172a',
+          border: '1px solid rgba(16, 185, 129, 0.2)',
+          backdropFilter: 'blur(8px)',
+          borderRadius: '16px',
           fontSize: '13px',
           fontWeight: '600',
         },
-        success: { iconTheme: { primary: '#10b981', secondary: '#1A1C23' } },
-        error:   { iconTheme: { primary: '#ef4444', secondary: '#1A1C23' } },
+        success: { iconTheme: { primary: '#10b981', secondary: '#ffffff' } },
+        error:   { iconTheme: { primary: '#ef4444', secondary: '#ffffff' } },
         duration: 3500,
       }}
     />

@@ -13,3 +13,5 @@ torchvision
 python-multipart
 pydantic
 slowapi
+google-generativeai
+python-dotenv
