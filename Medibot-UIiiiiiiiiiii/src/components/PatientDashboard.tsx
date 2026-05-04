@@ -15,6 +15,8 @@ import { db as firestoreDb, storage } from '../lib/firebase';
 import { auth } from '../lib/firebase';
 import { usePatientStore } from '../store/usePatientStore';
 import apiClient from '../lib/apiClient';
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 import {
   Stethoscope, User, Activity, ShieldCheck, BrainCircuit, Loader2,
   LayoutDashboard, History, Microscope, Pill, MessageSquare, LogOut,
@@ -1492,6 +1494,25 @@ const WELCOME_MSG: ChatMsg = {
   type: 'text'
 };
 
+const TypingText = ({ text, onComplete }: { text: string; onComplete?: () => void }) => {
+  const [displayedText, setDisplayedText] = React.useState('');
+  const [index, setIndex] = React.useState(0);
+
+  React.useEffect(() => {
+    if (index < text.length) {
+      const timer = setTimeout(() => {
+        setDisplayedText((prev) => prev + text[index]);
+        setIndex((prev) => prev + 1);
+      }, 10); // Speed of typing
+      return () => clearTimeout(timer);
+    } else if (onComplete) {
+      onComplete();
+    }
+  }, [index, text, onComplete]);
+
+  return <>{displayedText}</>;
+};
+
 const AIChat = ({ uid }: { uid: string | null }) => {
   const { profile } = usePatientStore();
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -1740,32 +1761,43 @@ const AIChat = ({ uid }: { uid: string | null }) => {
             </div>
           )}
 
-          {messages.map((msg, idx) => (
-            <motion.div key={idx} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.22 }}
-              className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
-              <div className="max-w-[85%] sm:max-w-[72%]">
-                {msg.type === 'status' ? (
-                  <div className="flex items-center gap-1.5 text-emerald-500 dark:emerald-400 italic text-xs font-bold bg-emerald-500 dark:emerald-400/5 px-4 py-2 rounded-full border border-emerald-500 dark:emerald-400/10">
-                    <Loader2 size={11} className="animate-spin" /> {msg.text}
-                  </div>
-                ) : msg.type === 'vision' || msg.type === 'image_analysis' ? (
-                  <div className="bg-white dark:bg-emerald-900 border border-emerald-500 dark:emerald-400/20 rounded-3xl rounded-tl-sm p-5 shadow-xl">
-                    <div className="flex items-center gap-3 mb-3">
-                      <div className="p-2 bg-emerald-500 dark:emerald-400/10 rounded-xl"><Microscope className="text-emerald-500 dark:emerald-400 w-4 h-4" /></div>
-                      <div><h5 className="text-sm font-bold text-slate-900 dark:text-slate-900 dark:text-white">Visual Analysis Complete</h5><p className="text-xs text-slate-600 dark:text-teal-300 dark:text-teal-200">AI Medical Imaging</p></div>
+          {messages.map((msg, idx) => {
+            const isLast = idx === messages.length - 1;
+            return (
+              <motion.div key={idx} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.22 }}
+                className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
+                <div className="max-w-[85%] sm:max-w-[72%]">
+                  {msg.type === 'status' ? (
+                    <div className="flex items-center gap-1.5 text-emerald-500 dark:emerald-400 italic text-xs font-bold bg-emerald-500 dark:emerald-400/5 px-4 py-2 rounded-full border border-emerald-500 dark:emerald-400/10">
+                      <Loader2 size={11} className="animate-spin" /> {msg.text}
                     </div>
-                    <p className="text-sm text-slate-300 leading-relaxed">{msg.result || msg.text}</p>
-                  </div>
-                ) : (
-                  <div className={`px-5 py-4 rounded-3xl text-sm leading-relaxed shadow-md ${msg.role === 'user'
-                    ? 'bg-emerald-500 dark:bg-emerald-400 text-white dark:text-slate-900 rounded-tr-sm'
-                    : 'bg-white dark:bg-emerald-900 border border-slate-200 dark:border-emerald-800 text-slate-600 dark:text-slate-300 rounded-tl-sm'}`}>
-                    {msg.text}
-                  </div>
-                )}
-              </div>
-            </motion.div>
-          ))}
+                  ) : msg.type === 'vision' || msg.type === 'image_analysis' ? (
+                    <div className="bg-white dark:bg-emerald-900 border border-emerald-500 dark:emerald-400/20 rounded-3xl rounded-tl-sm p-5 shadow-xl">
+                      <div className="flex items-center gap-3 mb-3">
+                        <div className="p-2 bg-emerald-500 dark:emerald-400/10 rounded-xl"><Microscope className="text-emerald-500 dark:emerald-400 w-4 h-4" /></div>
+                        <div><h5 className="text-sm font-bold text-slate-900 dark:text-slate-900 dark:text-white">Visual Analysis Complete</h5><p className="text-xs text-slate-600 dark:text-teal-300 dark:text-teal-200">AI Medical Imaging</p></div>
+                      </div>
+                      <p className="text-sm text-slate-300 leading-relaxed">
+                        {isLast && msg.role === 'ai' ? <TypingText text={msg.result || msg.text} /> : (msg.result || msg.text)}
+                      </p>
+                    </div>
+                  ) : (
+                    <div className={`px-5 py-4 rounded-3xl text-sm leading-relaxed shadow-md prose dark:prose-invert prose-p:my-1 prose-headings:my-2 prose-li:my-0.5 ${msg.role === 'user'
+                      ? 'bg-emerald-500 dark:bg-emerald-400 text-white dark:text-slate-900 rounded-tr-sm'
+                      : 'bg-white dark:bg-emerald-900 border border-slate-200 dark:border-emerald-800 text-slate-300 rounded-tl-sm'}`}>
+                      {isLast && msg.role === 'ai' ? (
+                        <TypingText text={msg.text} />
+                      ) : (
+                        <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                          {msg.text}
+                        </ReactMarkdown>
+                      )}
+                    </div>
+                  )}
+                </div>
+              </motion.div>
+            );
+          })}
 
           {isTyping && (
             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex justify-start">

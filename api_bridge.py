@@ -196,6 +196,7 @@ async def personalized_chat(request: Request, request_body: ChatRequest):
     try:
         # Build the patient info string for context injection
         patient_info_str = ""
+        media_attachments = []
         if request_body.patient_context:
             ctx = request_body.patient_context
             info_parts = []
@@ -206,8 +207,34 @@ async def personalized_chat(request: Request, request_body: ChatRequest):
             if ctx.active_medications: info_parts.append(f"Current Medications: {', '.join(ctx.active_medications)}")
             if ctx.recent_vitals: info_parts.append(f"Recent Vitals: {ctx.recent_vitals}")
             if hasattr(ctx, 'timeline_events') and ctx.timeline_events: 
-                events_str = "; ".join([f"{e.get('date', '')} {e.get('title', '')}" for e in ctx.timeline_events])
-                info_parts.append(f"Medical Timeline: {events_str}")
+                events_parts = []
+                for idx, e in enumerate(ctx.timeline_events):
+                    event_str = f"Date: {e.get('date', '')}, Title: {e.get('title', '')}, Description: {e.get('desc', 'N/A')}"
+                    events_parts.append(event_str)
+                    
+                    # Fetch attachment if available for deep understanding
+                    fileUrl = e.get('fileUrl', '')
+                    if fileUrl and fileUrl.startswith('http') and idx < 3:
+                        try:
+                            import requests
+                            from PIL import Image
+                            import io
+                            # Only attempt to process images for multimodal context
+                            if any(ext in fileUrl.lower() for ext in ['.jpg', '.jpeg', '.png', '.webp', 'firebasestorage']):
+                                resp = requests.get(fileUrl, timeout=5)
+                                if resp.status_code == 200:
+                                    img = Image.open(io.BytesIO(resp.content))
+                                    # Convert to RGB to avoid issues with alpha channels
+                                    if img.mode != 'RGB':
+                                        img = img.convert('RGB')
+                                    # Resize to reduce token usage/time
+                                    img.thumbnail((800, 800))
+                                    media_attachments.append(img)
+                        except Exception as ex:
+                            print(f"Failed to fetch timeline image: {ex}")
+                
+                info_parts.append(f"Medical Timeline: {' | '.join(events_parts)}")
+                
             if info_parts:
                 patient_info_str = " | ".join(info_parts)
 
@@ -216,22 +243,31 @@ async def personalized_chat(request: Request, request_body: ChatRequest):
         context_str = "\n".join([d.page_content for d in docs])
         
         # 2. Build Gemini Prompt
-        prompt = f"""You are MediBOT, a highly advanced, friendly, and empathetic clinical AI assistant.
-Your goal is to converse with the patient, using the medical knowledge context provided below to answer their questions.
-CRITICAL: You MUST use the PATIENT CONTEXT to personalize your answer. For example, if they complain of weakness and their timeline shows they recently had Dengue, connect the two.
-DO NOT use overly cautious language like "I am an AI and cannot provide medical advice" unless there is a severe risk of harm or emergency. Be direct, helpful, and concise.
+        prompt = f"""You are MediBOT, a concise clinical AI. 
+Your goal is to provide brief, high-value medical insights based ONLY on the context below.
 
-PATIENT CONTEXT: {patient_info_str if patient_info_str else 'None provided.'}
+### FORMATTING RULES (CRITICAL):
+1. **NO HASHTAGS**: Do NOT use '#' for headers. Use bold text (e.g., **Heading**) instead.
+2. **BREVITY**: Keep answers under 4-5 sentences total. If you provide a list, keep items short.
+3. **NO FLUFF**: Skip the "I'm sorry to hear that" or "I understand" intro. Get straight to the facts.
+4. **NO MARKDOWN BULLETS**: Use simple dashes (-) or numbers (1.) for lists.
+5. **STRICT CONTEXT**: Only mention timeline events, medications, or vitals explicitly listed below. 
 
-MEDICAL KNOWLEDGE CONTEXT:
+### PATIENT CONTEXT:
+{patient_info_str if patient_info_str else 'No patient history.'}
+
+### KNOWLEDGE:
 {context_str}
 
-USER QUESTION: {request_body.query}
+### QUESTION:
+{request_body.query}
 
-Provide a conversational, empathetic, detailed, and personalized answer.
+### CONCISE RESPONSE:
 """
 
-        response = gemini_model.generate_content(prompt)
+        # Pass prompt and any fetched images to Gemini
+        contents = [prompt] + media_attachments
+        response = gemini_model.generate_content(contents)
         answer = response.text
 
         sources = []

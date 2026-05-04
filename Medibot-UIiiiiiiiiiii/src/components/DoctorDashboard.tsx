@@ -52,51 +52,70 @@ const Sparkline = ({ data, color }: { data: { value: number }[]; color: string }
 // ---------------------------------------------------------------------------
 // Sidebar
 // ---------------------------------------------------------------------------
-const Sidebar = ({ activeTab, setActiveTab, onLogout, isOpen, setIsOpen }: {
-  activeTab: DoctorTab; setActiveTab: (t: DoctorTab) => void; onLogout: () => void; isOpen: boolean; setIsOpen: (o: boolean) => void;
+const Sidebar = ({ activeTab, setActiveTab, onLogout, doctorName, initials, navItems, isOpen, setIsOpen }: {
+  activeTab: DoctorTab; 
+  setActiveTab: (t: DoctorTab) => void; 
+  onLogout: () => void; 
+  doctorName: string;
+  initials: string;
+  navItems: { id: DoctorTab; label: string; icon: any }[];
+  isOpen: boolean; 
+  setIsOpen: (o: boolean) => void;
 }) => {
-  const tabs = [
-    { id: 'command' as DoctorTab, icon: LayoutDashboard, label: 'Command Center' },
-    { id: 'registry' as DoctorTab, icon: Users, label: 'Patient Registry' },
-    { id: 'imaging' as DoctorTab, icon: Microscope, label: 'Imaging Lab' },
-    { id: 'pharmacy' as DoctorTab, icon: Pill, label: 'Pharmacy Hub' },
-    { id: 'insights' as DoctorTab, icon: BrainCircuit, label: 'Insights' },
-    { id: 'assistant' as DoctorTab, icon: MessageSquare, label: 'AI Assistant' },
-    { id: 'appointments' as DoctorTab, icon: Calendar, label: 'Appointments' },
-  ];
   return (
     <>
-      <div className={`fixed inset-0 bg-slate-900/50 z-20 transition-opacity lg:hidden ${isOpen ? 'opacity-100' : 'opacity-0 pointer-events-none'}`} onClick={() => setIsOpen(false)} />
-      <div className={`fixed lg:static top-0 left-0 h-full w-64 bg-stone-100 dark:bg-teal-950 flex flex-col z-30 transition-transform ${isOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'} flex-shrink-0`}>
-        <div className="p-5 flex items-center justify-between border-b border-slate-800 dark:border-emerald-800 dark:border-emerald-800">
+      <AnimatePresence>
+        {isOpen && (
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setIsOpen(false)}
+            className="fixed inset-0 bg-[#0B1412]/80 backdrop-blur-md z-40 lg:hidden" />
+        )}
+      </AnimatePresence>
+      <div className={`fixed lg:relative lg:translate-x-0 w-80 h-full bg-[#0F1F1B] border-r border-white/5 z-50 transition-all duration-500 flex flex-col shadow-2xl lg:shadow-none ${isOpen ? 'translate-x-0' : '-translate-x-full'}`}>
+        <div className="p-8 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="w-9 h-9 bg-emerald-500 dark:emerald-400 rounded-xl flex items-center justify-center shadow-sm shadow-emerald-500/10 flex-shrink-0">
-              <Stethoscope className="text-white w-5 h-5" />
-            </div>
-            <span className="text-lg font-bold text-slate-900 dark:text-white dark:text-white">Medi<span className="text-emerald-500 dark:emerald-400">BOT</span></span>
+            <div className="w-10 h-10 bg-[#22C55E] rounded-xl flex items-center justify-center text-[#0B1412] shadow-xl shadow-[#22C55E]/20"><ShieldCheck size={24} /></div>
+            <span className="text-xl font-black text-[#E6F1ED] tracking-tighter uppercase">Medi<span className="text-[#22C55E]">BOT</span></span>
           </div>
-          <button onClick={() => setIsOpen(false)} className="lg:hidden text-slate-400 dark:text-teal-300 dark:text-teal-300 hover:text-slate-900 dark:text-white dark:hover:text-white"><X size={20} /></button>
+          <button onClick={() => setIsOpen(false)} className="lg:hidden p-2 text-[#6B8077] hover:text-[#E6F1ED] transition-colors"><X size={20}/></button>
         </div>
-      <nav className="flex-1 p-4 space-y-1 mt-2">
-        {tabs.map(tab => (
-          <button key={tab.id} onClick={() => { setActiveTab(tab.id); setIsOpen(false); }}
-            className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-semibold transition-all border-l-4 ${
-              activeTab === tab.id ? 'border-emerald-500 bg-emerald-500 text-white dark:bg-emerald-400/10 dark:text-emerald-400 shadow-sm' : 'border-transparent text-slate-500 dark:text-teal-200 dark:text-teal-200 hover:bg-stone-50 dark:hover:bg-teal-900 hover:text-slate-900 dark:text-white dark:hover:text-white'
-            }`}
-          >
-            <tab.icon size={18} />
-            <span>{tab.label}</span>
+
+        <div className="px-6 mb-8">
+           <div className="p-5 bg-[#132823] rounded-[2rem] border border-white/5 group hover:border-[#22C55E]/30 transition-all shadow-inner">
+              <div className="flex items-center gap-4">
+                 <div className="w-12 h-12 rounded-2xl bg-[#22C55E] flex items-center justify-center text-[#0B1412] shadow-lg shadow-[#22C55E]/20 text-sm font-black">{initials}</div>
+                 <div className="min-w-0">
+                    <p className="text-[10px] font-black text-[#6B8077] uppercase tracking-widest mb-0.5">Practitioner</p>
+                    <p className="text-sm font-black text-[#E6F1ED] truncate uppercase tracking-tight">{doctorName || 'MD Doctor'}</p>
+                 </div>
+              </div>
+           </div>
+        </div>
+
+        <nav className="flex-1 px-4 space-y-1 overflow-y-auto scrollbar-hide">
+          {navItems.map((item) => (
+            <button key={item.id} onClick={() => { setActiveTab(item.id); setIsOpen(false); }}
+              className={`w-full flex items-center gap-4 px-6 py-4 rounded-2xl text-[11px] font-black tracking-widest transition-all uppercase relative group ${
+                activeTab === item.id 
+                  ? 'bg-[#132823] text-[#22C55E] shadow-inner' 
+                  : 'text-[#6B8077] hover:bg-[#132823]/50 hover:text-[#9FB3AA]'
+              }`}
+            >
+              {activeTab === item.id && <motion.div layoutId="activeNav" className="absolute left-2 w-1.5 h-6 bg-[#22C55E] rounded-full" />}
+              <item.icon size={18} className={activeTab === item.id ? 'text-[#22C55E]' : 'text-[#6B8077] group-hover:text-[#9FB3AA]'} />
+              <span>{item.label}</span>
+            </button>
+          ))}
+        </nav>
+
+        <div className="p-6 border-t border-white/5 space-y-4">
+          <button onClick={() => useThemeStore.getState().toggleTheme()} className="w-full flex items-center justify-center gap-3 px-6 py-4 bg-[#132823] text-[#9FB3AA] rounded-2xl font-black text-[10px] uppercase tracking-[0.2em] hover:text-[#E6F1ED] transition-all border border-white/5">
+             {useThemeStore.getState().isDarkMode ? <><Sun size={16} /> Day Mode</> : <><Moon size={16} /> Night Mode</>}
           </button>
-        ))}
-      </nav>
-      <div className="p-4 border-t border-slate-800 dark:border-emerald-800 dark:border-emerald-800">
-        <button onClick={onLogout}
-          className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-semibold text-slate-500 dark:text-teal-200 dark:text-teal-200 hover:bg-red-500/10 hover:text-red-400 transition-all"
-        >
-          <LogOut size={18} /><span>Sign Out</span>
-        </button>
+          <button onClick={onLogout} className="w-full flex items-center justify-center gap-3 px-6 py-4 text-[#EF4444] font-black tracking-[0.3em] hover:bg-[#EF4444]/10 rounded-2xl transition-all uppercase text-[10px]">
+            <LogOut size={16} /> System Offline
+          </button>
+        </div>
       </div>
-    </div>
     </>
   );
 };
@@ -104,36 +123,54 @@ const Sidebar = ({ activeTab, setActiveTab, onLogout, isOpen, setIsOpen }: {
 // ---------------------------------------------------------------------------
 // TAB 1: Command Center — Patient List
 // ---------------------------------------------------------------------------
-const PatientList = ({ patients, activeId, onSelect }: { patients: any[]; activeId: string; onSelect: (id: string) => void }) => {
+const PatientList = ({ patients, activeId, onSelect, isMobileView }: { patients: any[]; activeId: string; onSelect: (id: string) => void; isMobileView?: boolean }) => {
   const [search, setSearch] = useState('');
   const filtered = patients.filter(p => p.name?.toLowerCase().includes(search.toLowerCase()));
   return (
-    <div className="w-72 border-r border-slate-200 dark:border-emerald-800 dark:border-emerald-800 bg-stone-50 dark:bg-teal-950 flex flex-col h-full flex-shrink-0">
-      <div className="p-5 border-b border-slate-200 dark:border-emerald-800 dark:border-emerald-800 bg-white dark:bg-emerald-900 dark:bg-emerald-900">
-        <h3 className="text-sm font-bold text-slate-900 dark:text-white dark:text-white mb-3">Patient Queue <span className="text-slate-400 dark:text-teal-300 dark:text-teal-300 font-normal">({patients.length})</span></h3>
-        <div className="relative"><Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 dark:text-teal-300 dark:text-teal-300" size={13} />
-          <input type="text" placeholder="Search..." value={search} onChange={e => setSearch(e.target.value)}
-            className="w-full pl-9 pr-3 py-2 bg-slate-100 rounded-xl text-sm text-slate-900 dark:text-white dark:text-white focus:ring-2 focus:ring-emerald-500 dark:emerald-400/20 outline-none" />
+    <div className={`${isMobileView ? 'w-full' : 'w-72 hidden lg:flex'} border-r border-white/5 bg-[#0F1F1B] flex flex-col h-full flex-shrink-0 transition-all`}>
+      <div className="p-6 border-b border-white/5 bg-[#132823]/50">
+        <h3 className="text-[11px] font-black text-[#9FB3AA] uppercase tracking-widest mb-4 flex items-center justify-between">
+          <span>Patient Queue</span>
+          <span className="bg-[#0B1412] px-2 py-0.5 rounded-md text-[10px] text-[#6B8077]">
+            {patients.length} Active
+          </span>
+        </h3>
+        <div className="relative">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-[#6B8077]" size={14} />
+          <input type="text" placeholder="Filter patients..." value={search} onChange={e => setSearch(e.target.value)}
+            className="w-full pl-10 pr-4 py-3 bg-[#0B1412] border border-white/5 focus:border-[#22C55E]/50 rounded-xl text-sm text-[#E6F1ED] outline-none transition-all placeholder:text-[#6B8077]" />
         </div>
       </div>
-      <div className="flex-1 overflow-y-auto p-3 space-y-2">
-        {filtered.map(p => (
-          <button key={p.id} onClick={() => onSelect(p.id)}
-            className={`w-full text-left p-3.5 rounded-xl transition-all border ${activeId === p.id ? 'bg-white dark:bg-emerald-900 dark:bg-emerald-900 border-emerald-500 dark:emerald-400 shadow ring-1 ring-emerald-500 dark:emerald-400/10' : 'bg-white dark:bg-emerald-900 dark:bg-emerald-900/60 border-slate-200 dark:border-emerald-800 dark:border-emerald-800 hover:border-sky-300 hover:bg-white dark:bg-emerald-900 dark:bg-emerald-900'}`}
-          >
-            <div className="flex items-center justify-between mb-1">
-              <div className="flex items-center gap-2">
-                <div className={`w-2 h-2 rounded-full flex-shrink-0 ${p.priority === 'red' ? 'bg-red-500 animate-pulse' : p.priority === 'yellow' ? 'bg-amber-500' : 'bg-emerald-500'}`} />
-                <span className="font-bold text-slate-900 dark:text-white dark:text-white text-sm truncate">{p.name || 'Unnamed'}</span>
+      <div className="flex-1 overflow-y-auto p-4 space-y-3">
+        {filtered.length === 0 ? (
+          <div className="py-12 text-center text-[#6B8077] text-xs font-bold uppercase tracking-widest">No patients found</div>
+        ) : (
+          filtered.map(p => (
+            <button key={p.id} onClick={() => onSelect(p.id)}
+              className={`w-full text-left p-5 rounded-xl transition-all border-2 ${
+                activeId === p.id 
+                  ? 'bg-[#132823] border-[#22C55E]/40 shadow-xl' 
+                  : 'bg-[#132823]/30 border-transparent hover:bg-[#132823]/60 hover:border-white/5 shadow-sm'
+              }`}
+            >
+              <div className="flex items-center justify-between mb-3">
+                <div className="flex items-center gap-3 min-w-0">
+                  <div className={`w-2 h-2 rounded-full flex-shrink-0 ${p.priority === 'red' ? 'bg-[#EF4444] animate-pulse' : p.priority === 'yellow' ? 'bg-[#F59E0B]' : 'bg-[#22C55E]'}`} />
+                  <span className="font-bold text-[#E6F1ED] text-sm truncate uppercase tracking-tight">{p.name || 'Unnamed'}</span>
+                </div>
+                <span className="text-[9px] font-black text-[#6B8077] uppercase tabular-nums tracking-widest flex-shrink-0">#{p.id.slice(0,4)}</span>
               </div>
-              <span className="text-[9px] text-slate-400 dark:text-teal-300 dark:text-teal-300">#{p.id.slice(0,6)}</span>
-            </div>
-            <div className="flex justify-between items-center">
-              <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${p.priority === 'red' ? 'bg-red-50 text-red-600' : p.priority === 'yellow' ? 'bg-amber-50 text-amber-600' : 'bg-emerald-50 text-emerald-600'}`}>{p.status}</span>
-              <span className="text-[10px] text-slate-400 dark:text-teal-300 dark:text-teal-300">{p.vitals.hr} bpm</span>
-            </div>
-          </button>
-        ))}
+              <div className="flex justify-between items-center">
+                <span className={`text-[9px] font-black px-2 py-0.5 rounded-md uppercase tracking-widest ${
+                  p.priority === 'red' ? 'bg-[#EF4444]/10 text-[#EF4444]' : p.priority === 'yellow' ? 'bg-[#F59E0B]/10 text-[#F59E0B]' : 'bg-[#22C55E]/10 text-[#22C55E]'
+                }`}>{p.status}</span>
+                <div className="flex items-center gap-1.5 text-[10px] font-black text-[#9FB3AA] uppercase">
+                  <Heart size={10} className="text-[#EF4444]" /> {p.vitals.hr}
+                </div>
+              </div>
+            </button>
+          ))
+        )}
       </div>
     </div>
   );
@@ -142,7 +179,7 @@ const PatientList = ({ patients, activeId, onSelect }: { patients: any[]; active
 // ---------------------------------------------------------------------------
 // TAB 1: Active Patient Profile
 // ---------------------------------------------------------------------------
-const ActivePatientProfile = ({ patient }: { patient: any }) => {
+const ActivePatientProfile = ({ patient, onBack }: { patient: any; onBack?: () => void }) => {
   const isAlert = patient.vitals.hr > 100 || patient.vitals.spo2 < 94;
   const [aiSummary, setAiSummary] = useState<string | null>(null);
   const [summarizing, setSummarizing] = useState(false);
@@ -161,95 +198,140 @@ const ActivePatientProfile = ({ patient }: { patient: any }) => {
   };
 
   return (
-    <div className="flex-1 flex flex-col bg-white dark:bg-emerald-900 dark:bg-emerald-900 overflow-y-auto min-w-0">
-      <div className={`p-6 border-b ${isAlert ? 'border-red-200 bg-red-50/30' : 'border-slate-100 dark:border-emerald-800 dark:border-emerald-800'}`}>
+    <div className="flex-1 flex flex-col bg-[#0B1412] overflow-y-auto min-w-0 transition-all duration-300">
+      <div className={`p-8 border-b transition-all duration-300 ${isAlert ? 'border-[#EF4444]/20 bg-[#EF4444]/5' : 'border-white/5'}`}>
+        <div className="flex items-center gap-4 mb-8 lg:hidden">
+          <button onClick={onBack} className="p-2.5 -ml-2 text-[#9FB3AA] hover:bg-[#132823] rounded-xl transition-all">
+            <X size={20} />
+          </button>
+          <span className="text-[11px] font-black text-[#E6F1ED] uppercase tracking-[0.2em]">Patient Chart</span>
+        </div>
+        
         {isAlert && (
           <motion.div initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }}
-            className="flex items-center gap-2 mb-4 px-4 py-2.5 bg-red-50 border border-red-200 rounded-xl"
+            className="flex items-center gap-4 mb-8 px-5 py-4 bg-[#EF4444]/10 border border-[#EF4444]/20 rounded-xl"
           >
-            <div className="w-2 h-2 bg-red-500 rounded-full animate-ping" />
-            <AlertTriangle size={13} className="text-red-600" />
-            <span className="text-xs font-bold text-red-700">VITALS ALERT — {patient.vitals.hr > 100 ? `HR ${patient.vitals.hr} bpm (Tachycardia)` : `SpO₂ ${patient.vitals.spo2}% (Hypoxia)`}</span>
+            <div className="w-8 h-8 rounded-lg bg-[#EF4444]/20 flex items-center justify-center text-[#EF4444]"><AlertTriangle size={18} /></div>
+            <div className="flex-1">
+              <p className="text-[10px] font-black text-[#EF4444] uppercase tracking-widest">Critical Diagnostic Alert</p>
+              <p className="text-sm font-bold text-[#E6F1ED] tracking-tight">{patient.vitals.hr > 100 ? `Tachycardia Detected (HR ${patient.vitals.hr} bpm)` : `Hypoxia Detected (SpO₂ ${patient.vitals.spo2}%)`}</p>
+            </div>
+            <div className="w-2 h-2 bg-[#EF4444] rounded-full animate-ping" />
           </motion.div>
         )}
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-4">
-            <div className={`w-14 h-14 rounded-2xl flex items-center justify-center ${isAlert ? 'bg-red-100' : 'bg-slate-100'}`}><User size={28} className={isAlert ? 'text-red-400' : 'text-slate-300'} /></div>
+
+        <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-8">
+          <div className="flex items-center gap-6">
+            <div className={`w-20 h-20 rounded-2xl flex items-center justify-center shadow-2xl transition-all duration-500 ${isAlert ? 'bg-[#EF4444]/20 ring-4 ring-[#EF4444]/10' : 'bg-[#132823] ring-4 ring-white/5'}`}>
+              <User size={36} className={isAlert ? 'text-[#EF4444]' : 'text-[#22C55E]'} />
+            </div>
             <div>
-              <div className="flex items-center gap-2 flex-wrap">
-                <h2 className="text-xl font-bold text-slate-900 dark:text-white dark:text-white">{patient.name}</h2>
-                <span className="px-2 py-0.5 bg-slate-100 rounded-full text-xs font-bold text-slate-500 dark:text-teal-200 dark:text-teal-200">{patient.gender}, {patient.age}y</span>
-                <span className="px-2 py-0.5 bg-emerald-50 dark:teal-900 rounded-full text-xs font-bold text-emerald-600 dark:emerald-500">{patient.bloodType}</span>
+              <div className="flex items-center gap-3 flex-wrap">
+                <h2 className="text-3xl font-black text-[#E6F1ED] tracking-tighter uppercase">{patient.name}</h2>
+                <div className="flex gap-2">
+                  <span className="px-3 py-1 bg-[#132823] border border-white/5 rounded-md text-[10px] font-black text-[#9FB3AA] uppercase tracking-widest">{patient.gender}, {patient.age}y</span>
+                  <span className="px-3 py-1 bg-[#22C55E]/10 border border-[#22C55E]/20 rounded-md text-[10px] font-black text-[#22C55E] uppercase tracking-widest">{patient.bloodType}</span>
+                </div>
               </div>
-              <p className="text-slate-400 dark:text-teal-300 dark:text-teal-300 text-xs flex items-center gap-1 mt-0.5"><ShieldCheck size={11} className="text-emerald-500" /> MediBOT Verified</p>
+              <p className="text-[#6B8077] text-xs flex items-center gap-2 mt-2 font-black uppercase tracking-widest">
+                <ShieldCheck size={14} className="text-[#22C55E]" /> MediBOT ID: <span className="text-[#9FB3AA] tabular-nums tracking-widest">#{patient.id.slice(0,12)}</span>
+              </p>
             </div>
           </div>
           <button onClick={handleAiBrief} disabled={summarizing}
-            className="flex items-center gap-2 px-4 py-2 bg-emerald-500 dark:emerald-400 text-white text-xs font-bold rounded-xl hover:bg-emerald-600 dark:emerald-500 transition-all disabled:opacity-60 shadow-lg shadow-emerald-200 dark:teal-700"
+            className="px-8 py-4 bg-[#22C55E] text-white text-xs font-black rounded-xl hover:bg-[#1DA851] transition-all disabled:opacity-50 shadow-xl shadow-[#22C55E]/10 active:scale-95 uppercase tracking-widest flex items-center justify-center gap-3"
           >
-            {summarizing ? <Loader2 size={13} className="animate-spin" /> : <Sparkles size={13} />} AI Brief
+            {summarizing ? <Loader2 size={16} className="animate-spin" /> : <Sparkles size={16} />} GENERATE CLINICAL BRIEF
           </button>
         </div>
+
         {(patient.allergies?.length > 0 || patient.activeMedications?.length > 0) && (
-          <div className="mt-3 flex flex-wrap gap-1.5">
-            {patient.allergies?.map((a: string, i: number) => <span key={i} className="px-2 py-0.5 bg-red-50 border border-red-100 text-red-700 text-[10px] font-bold rounded-full">⚠ {a}</span>)}
-            {patient.activeMedications?.map((m: string, i: number) => <span key={i} className="px-2 py-0.5 bg-slate-100 text-slate-600 dark:text-teal-100 dark:text-teal-100 text-[10px] font-bold rounded-full">💊 {m}</span>)}
+          <div className="mt-8 flex flex-wrap gap-3">
+            {patient.allergies?.map((a: string, i: number) => <span key={i} className="px-3 py-1.5 bg-[#EF4444]/5 border border-[#EF4444]/20 text-[#EF4444] text-[10px] font-black rounded-lg uppercase tracking-widest flex items-center gap-2"><X size={12}/> Allergy: {a}</span>)}
+            {patient.activeMedications?.map((m: string, i: number) => <span key={i} className="px-3 py-1.5 bg-[#132823] border border-white/5 text-[#9FB3AA] text-[10px] font-black rounded-lg uppercase tracking-widest flex items-center gap-2"><Pill size={12}/> Medication: {m}</span>)}
           </div>
         )}
       </div>
 
-      <AnimatePresence>
-        {aiSummary && (
-          <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} exit={{ opacity: 0, height: 0 }}
-            className="mx-5 mt-4 p-4 bg-emerald-50 dark:teal-900 border border-emerald-200 dark:teal-700 rounded-2xl"
-          >
-            <div className="flex items-center gap-2 mb-2"><Sparkles size={13} className="text-emerald-500 dark:emerald-400" /><span className="text-xs font-bold text-emerald-700 dark:emerald-300 uppercase">AI Clinical Brief</span>
-              <button onClick={() => setAiSummary(null)} className="ml-auto text-slate-400 dark:text-teal-300 dark:text-teal-300 hover:text-slate-600 dark:text-teal-100 dark:text-teal-100"><X size={13} /></button>
-            </div>
-            <p className="text-sm text-slate-700 dark:text-slate-200 dark:text-slate-200 leading-relaxed">{aiSummary}</p>
-          </motion.div>
-        )}
-      </AnimatePresence>
-
-      <div className="p-5 space-y-5">
-        <div className="grid grid-cols-2 gap-4">
+      <div className="p-8 space-y-10">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
           {[
-            { icon: Heart, label: 'Heart Rate', val: `${patient.vitals.hr} bpm`, data: patient.hrData, color: isAlert && patient.vitals.hr > 100 ? '#EF4444' : '#94A3B8', alert: isAlert && patient.vitals.hr > 100 },
-            { icon: Activity, label: 'SpO₂', val: `${patient.vitals.spo2}%`, data: patient.spo2Data, color: isAlert && patient.vitals.spo2 < 94 ? '#EF4444' : '#0EA5E9', alert: isAlert && patient.vitals.spo2 < 94 },
+            { icon: Heart, label: 'Heart Rate', val: `${patient.vitals.hr} bpm`, data: patient.hrData, color: isAlert && patient.vitals.hr > 100 ? '#EF4444' : '#22C55E', alert: isAlert && patient.vitals.hr > 100 },
+            { icon: Activity, label: 'Oxygen Saturation', val: `${patient.vitals.spo2}%`, data: patient.spo2Data, color: isAlert && patient.vitals.spo2 < 94 ? '#EF4444' : '#3B82F6', alert: isAlert && patient.vitals.spo2 < 94 },
           ].map(({ icon: Icon, label, val, data, color, alert }) => (
-            <div key={label} className={`p-4 rounded-2xl border ${alert ? 'bg-red-50 border-red-200' : 'bg-stone-50 dark:bg-teal-950 border-slate-100 dark:border-emerald-800 dark:border-emerald-800'}`}>
-              <div className="flex items-center justify-between mb-2">
-                <div className="flex items-center gap-1.5"><Icon size={14} className={alert ? 'text-red-600' : 'text-slate-500 dark:text-teal-200 dark:text-teal-200'} /><span className="text-[10px] font-bold text-slate-500 dark:text-teal-200 dark:text-teal-200 uppercase">{label}</span></div>
-                <span className={`text-lg font-bold ${alert ? 'text-red-600' : 'text-slate-900 dark:text-white dark:text-white'}`}>{val}</span>
+            <div key={label} className={`p-6 rounded-2xl border-2 transition-all duration-500 ${alert ? 'bg-[#EF4444]/5 border-[#EF4444]/20 shadow-2xl' : 'bg-[#0F1F1B] border-white/5 shadow-sm'}`}>
+              <div className="flex items-center justify-between mb-6">
+                <div className="flex items-center gap-3">
+                  <div className={`p-2.5 rounded-xl ${alert ? 'bg-[#EF4444]/20' : 'bg-[#132823] border border-white/5'}`}>
+                    <Icon size={18} className={alert ? 'text-[#EF4444]' : 'text-[#6B8077]'} />
+                  </div>
+                  <span className="text-[11px] font-black text-[#9FB3AA] uppercase tracking-widest">{label}</span>
+                </div>
+                <span className={`text-2xl font-black tabular-nums tracking-tight ${alert ? 'text-[#EF4444]' : 'text-[#E6F1ED]'}`}>{val}</span>
               </div>
-              <Sparkline data={data} color={color} />
+              <div className="h-16 w-full">
+                <ResponsiveContainer width="100%" height="100%">
+                  <LineChart data={data}>
+                    <Line type="monotone" dataKey="value" stroke={color} strokeWidth={2.5} dot={false} isAnimationActive={true} />
+                    <YAxis hide domain={['dataMin - 5', 'dataMax + 5']} />
+                  </LineChart>
+                </ResponsiveContainer>
+              </div>
             </div>
           ))}
         </div>
 
-        <div>
-          <h4 className="text-xs font-bold text-slate-700 dark:text-slate-200 dark:text-slate-200 uppercase mb-3 flex items-center gap-2"><History size={13} className="text-emerald-500 dark:emerald-400" /> Clinical Timeline</h4>
+        <div className="bg-[#0F1F1B] p-8 rounded-2xl border border-white/5 shadow-inner relative overflow-hidden">
+          <div className="absolute top-0 right-0 w-64 h-64 bg-[#22C55E]/5 rounded-full blur-[100px] -mr-32 -mt-32" />
+          <h4 className="text-[11px] font-black text-[#E6F1ED] uppercase tracking-[0.2em] mb-8 flex items-center gap-4 relative z-10">
+            <div className="w-10 h-10 bg-[#22C55E] rounded-xl flex items-center justify-center text-white shadow-xl shadow-[#22C55E]/10"><History size={18} /></div>
+            Clinical Timeline Analytics
+          </h4>
+          
           {patient.history.length === 0 ? (
-            <div className="text-center text-slate-400 dark:text-teal-300 dark:text-teal-300 text-sm py-6 bg-stone-50 dark:bg-teal-950 rounded-xl">No recorded events yet.</div>
+            <div className="text-center text-[#6B8077] text-xs py-16 font-black uppercase tracking-widest border-2 border-dashed border-white/5 rounded-2xl">No clinical history records</div>
           ) : (
-            <div className="relative pl-5 space-y-3 before:absolute before:left-[6px] before:top-2 before:bottom-2 before:w-0.5 before:bg-slate-200">
+            <div className="relative pl-10 space-y-8 before:absolute before:left-[19px] before:top-2 before:bottom-2 before:w-[2px] before:bg-white/5">
               {patient.history.map((ev: any, i: number) => {
                 const isSelected = selectedEvent === ev.id;
                 return (
                 <div key={i} className="relative">
-                  <div className={`absolute -left-[21px] top-1 w-3.5 h-3.5 rounded-full border-2 border-white ${ev.type === 'surgery' ? 'bg-red-500' : ev.type === 'med' ? 'bg-emerald-500 dark:emerald-400' : 'bg-emerald-500'}`} />
-                  <div onClick={() => setSelectedEvent(isSelected ? null : ev.id)} className={`bg-stone-50 dark:bg-teal-950 p-3 rounded-xl border cursor-pointer transition-colors ${isSelected ? 'border-sky-300 bg-emerald-50 dark:teal-900/50' : 'border-slate-100 dark:border-emerald-800 dark:border-emerald-800 hover:border-slate-300'}`}>
-                    <span className="text-[10px] font-bold text-slate-400 dark:text-teal-300 dark:text-teal-300">{ev.date}</span>
-                    <h5 className="font-bold text-slate-800 dark:text-slate-100 dark:text-slate-100 text-xs mt-0.5">{ev.title}</h5>
-                    {ev.desc && <p className={`text-[11px] text-slate-500 dark:text-teal-200 dark:text-teal-200 mt-0.5 ${isSelected ? '' : 'line-clamp-1'}`}>{ev.desc}</p>}
+                  <div className={`absolute -left-[32px] top-2 w-6 h-6 rounded-lg border-4 border-[#0F1F1B] shadow-2xl transition-all duration-300 flex items-center justify-center ${isSelected ? 'scale-125 ring-4 ring-[#22C55E]/20' : ''} ${ev.type === 'surgery' ? 'bg-[#EF4444]' : ev.type === 'med' ? 'bg-[#F59E0B]' : 'bg-[#22C55E]'}`}>
+                    <Clock size={10} className="text-white" />
+                  </div>
+                  <div onClick={() => setSelectedEvent(isSelected ? null : ev.id)} 
+                    className={`p-6 rounded-xl border transition-all duration-300 cursor-pointer group ${
+                      isSelected 
+                        ? 'bg-[#132823] border-[#22C55E]/40 shadow-2xl' 
+                        : 'bg-[#132823]/30 border-white/5 hover:bg-[#132823]/60'
+                    }`}>
+                    <div className="flex items-center justify-between mb-3">
+                      <span className="text-[10px] font-black text-[#6B8077] uppercase tracking-[0.2em] tabular-nums group-hover:text-[#9FB3AA] transition-colors">{ev.date}</span>
+                      <span className={`text-[9px] font-black px-2 py-0.5 rounded-md uppercase tracking-widest ${
+                        ev.type === 'surgery' ? 'bg-[#EF4444]/10 text-[#EF4444]' : ev.type === 'med' ? 'bg-[#F59E0B]/10 text-[#F59E0B]' : 'bg-[#22C55E]/10 text-[#22C55E]'
+                      }`}>{ev.type}</span>
+                    </div>
+                    <h5 className="font-bold text-[#E6F1ED] text-base tracking-tight uppercase">{ev.title}</h5>
+                    {ev.desc && <p className={`text-sm text-[#9FB3AA] mt-3 font-medium leading-relaxed ${isSelected ? '' : 'line-clamp-2'}`}>{ev.desc}</p>}
+                    <AnimatePresence>
                     {isSelected && (
-                      <div className="mt-2 pt-2 border-t border-slate-200 dark:border-emerald-800 dark:border-emerald-800/60 flex items-center justify-between gap-2 flex-wrap">
-                        {ev.doctor && <p className="text-[10px] text-slate-600 dark:text-teal-100 dark:text-teal-100"><strong className="text-slate-700 dark:text-slate-200 dark:text-slate-200">Provider:</strong> {ev.doctor}</p>}
-                        {ev.fileUrl && (
-                          <button onClick={(e) => { e.stopPropagation(); window.open(ev.fileUrl, '_blank'); }} className="text-[10px] bg-emerald-100 dark:teal-800 text-emerald-700 dark:emerald-300 font-bold px-2 py-1 rounded-md hover:bg-emerald-200 dark:teal-700 transition-colors inline-flex items-center gap-1 ml-auto"><FileText size={10} /> View Document</button>
+                      <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} className="mt-6 pt-6 border-t border-white/5 flex items-center justify-between gap-6 flex-wrap">
+                        {ev.doctor && (
+                          <div className="flex items-center gap-3">
+                            <div className="w-8 h-8 rounded-full bg-[#0B1412] border border-white/5 flex items-center justify-center text-[10px] font-black text-[#6B8077]">MD</div>
+                            <p className="text-[11px] font-black text-[#9FB3AA] uppercase tracking-widest">Attending: <span className="text-[#E6F1ED]">{ev.doctor}</span></p>
+                          </div>
                         )}
-                      </div>
+                        {ev.fileUrl && (
+                          <button onClick={(e) => { e.stopPropagation(); window.open(ev.fileUrl, '_blank'); }} 
+                            className="px-5 py-2.5 bg-[#E6F1ED] text-[#0B1412] text-[10px] font-black rounded-lg hover:bg-[#9FB3AA] transition-all flex items-center gap-2 uppercase tracking-widest"
+                          >
+                            <FileText size={14} /> View Report
+                          </button>
+                        )}
+                      </motion.div>
                     )}
+                    </AnimatePresence>
                   </div>
                 </div>
               )})}
@@ -261,132 +343,17 @@ const ActivePatientProfile = ({ patient }: { patient: any }) => {
   );
 };
 
-// ---------------------------------------------------------------------------
-// TAB 1: AI Diagnostic Panel (Command Center right panel)
-// ---------------------------------------------------------------------------
-const AIDiagnosticPanel = ({ patient, onPrescriptionSaved }: { patient: any; onPrescriptionSaved: (rx: any) => void }) => {
-  const [overlay, setOverlay] = useState(false);
-  const [scanResult, setScanResult] = useState<any>(null);
-  const [analyzing, setAnalyzing] = useState(false);
-  const [scanImageUrl, setScanImageUrl] = useState<string | null>(null);
-  const fileInputRef = useRef<HTMLInputElement>(null);
-  const [prescForm, setPrescForm] = useState({ name: '', dosage: '', freq: '', duration: '', notes: '' });
-  const [interactionWarning, setInteractionWarning] = useState<string | null>(null);
-  const [signing, setSigning] = useState(false);
-  const [qrPayload, setQrPayload] = useState<string | null>(null);
 
-  const handleScan = async (file: File) => {
-    setAnalyzing(true); setScanResult(null); setOverlay(false);
-    setScanImageUrl(URL.createObjectURL(file));
-    try {
-      const reader = new FileReader();
-      const base64 = await new Promise<string>(res => { reader.onloadend = () => res(reader.result as string); reader.readAsDataURL(file); });
-      const { data } = await apiClient.post('/api/vision/analyze_xray', { image_base64: base64, patient_id: patient?.id ?? 'unknown' });
-      setScanResult(data); toast.success(`Analysis: ${data.predicted_class}`);
-    } catch { toast.error('X-ray analysis failed'); setScanResult({ predicted_class: 'Error', severity: '—', confidence: '—', recommendation: 'Could not connect to AI engine.' }); }
-    finally { setAnalyzing(false); }
-  };
-
-  const handleSign = async () => {
-    if (!prescForm.name || !patient) { toast.error('Fill in medication name'); return; }
-    if (interactionWarning && !window.confirm('Drug interaction warning exists. Proceed anyway?')) return;
-    setSigning(true);
-    try {
-      const doctorName = auth.currentUser?.displayName ?? 'Doctor';
-      const payload = { medication: prescForm.name, dosage: prescForm.dosage, frequency: prescForm.freq, duration: prescForm.duration, notes: prescForm.notes, prescribedBy: doctorName, patientId: patient.id, patientName: patient.name, issuedAt: new Date().toISOString(), status: 'Active' };
-      await addDoc(collection(db, 'prescriptions', patient.id, 'items'), { ...payload, createdAt: serverTimestamp() });
-      await addDoc(collection(db, 'medicalEvents', patient.id, 'events'), { date: new Date().toISOString().split('T')[0], title: `Prescribed: ${prescForm.name} ${prescForm.dosage}`, desc: `${prescForm.freq}. ${prescForm.duration}. By Dr. ${doctorName}.`, type: 'med', doctor: doctorName, createdAt: serverTimestamp() });
-      setQrPayload(JSON.stringify(payload));
-      onPrescriptionSaved(payload);
-      toast.success('Prescription signed & saved!');
-      setPrescForm({ name: '', dosage: '', freq: '', duration: '', notes: '' });
-      setInteractionWarning(null);
-    } catch { toast.error('Failed to save prescription'); }
-    finally { setSigning(false); }
-  };
-
-  const overlayRegions = scanResult ? (OVERLAY_REGIONS[scanResult.predicted_class] ?? []) : [];
-
+const AssistantTab = ({ patient, patients, selectPatient }: { patient: any; patients: any[]; selectPatient: (id: string) => void }) => {
   return (
-    <div className="w-88 border-l border-slate-200 dark:border-emerald-800 dark:border-emerald-800 bg-stone-50 dark:bg-teal-950 flex flex-col h-full overflow-y-auto flex-shrink-0" style={{ width: '22rem' }}>
-      <div className="p-4 border-b border-slate-200 dark:border-emerald-800 dark:border-emerald-800 bg-white dark:bg-emerald-900 dark:bg-emerald-900 sticky top-0 z-10">
-        <h3 className="text-sm font-bold text-slate-900 dark:text-white dark:text-white flex items-center gap-2"><BrainCircuit className="text-emerald-500 dark:emerald-400" size={16} /> AI Diagnostic Panel</h3>
-      </div>
-      <div className="p-4 space-y-5">
-        {/* Radiology mini-viewer */}
-        <div>
-          <div className="flex items-center justify-between mb-2">
-            <span className="text-[10px] font-bold text-slate-500 dark:text-teal-200 dark:text-teal-200 uppercase tracking-wider">Quick Scan</span>
-            <button onClick={() => setOverlay(!overlay)} disabled={!scanResult}
-              className={`flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-bold transition-all disabled:opacity-30 ${overlay ? 'bg-emerald-500 dark:emerald-400 text-white' : 'bg-slate-200 text-slate-500 dark:text-teal-200 dark:text-teal-200'}`}
-            ><Layers size={9} /> Overlay {overlay ? 'ON' : 'OFF'}</button>
-          </div>
-          <div className="relative aspect-video bg-slate-900 rounded-xl overflow-hidden border border-white shadow-lg">
-            {scanImageUrl ? <img src={scanImageUrl} alt="Scan" className="w-full h-full object-cover opacity-90" /> : (
-              <div className="absolute inset-0 flex flex-col items-center justify-center text-slate-600 dark:text-teal-100 dark:text-teal-100 gap-1"><Microscope size={22} /><span className="text-xs">Upload a scan below</span></div>
-            )}
-            {overlay && overlayRegions.length > 0 && (
-              <svg className="absolute inset-0 w-full h-full" viewBox="0 0 100 100" preserveAspectRatio="none">
-                {overlayRegions.map((r, i) => (
-                  <g key={i}>
-                    <ellipse cx={r.cx} cy={r.cy} rx={r.rx} ry={r.ry} fill="rgba(239,68,68,0.2)" stroke="rgba(239,68,68,0.8)" strokeWidth="0.6" className="animate-pulse" />
-                    <text x={r.cx} y={r.cy + r.ry + 5} textAnchor="middle" fontSize="4" fill="rgba(239,68,68,0.9)" fontWeight="bold">{r.label}</text>
-                  </g>
-                ))}
-              </svg>
-            )}
-            {analyzing && <div className="absolute inset-0 bg-black/60 flex items-center justify-center"><Loader2 className="animate-spin text-white" size={24} /></div>}
-          </div>
-          <button onClick={() => fileInputRef.current?.click()}
-            className="w-full mt-2 py-2 bg-slate-100 border border-dashed border-slate-300 rounded-xl flex items-center justify-center gap-2 text-xs font-bold text-slate-500 dark:text-teal-200 dark:text-teal-200 hover:bg-slate-200 hover:border-emerald-500 dark:emerald-400 hover:text-emerald-600 dark:emerald-500 transition-all"
-          ><Upload size={13} /> Upload X-ray / CT Scan</button>
-          <input ref={fileInputRef} type="file" className="hidden" accept="image/*" onChange={e => e.target.files?.[0] && handleScan(e.target.files[0])} />
-          {scanResult && scanResult.predicted_class !== 'Error' && (
-            <div className={`mt-2 p-3 rounded-xl border text-xs ${scanResult.predicted_class === 'Normal' ? 'bg-emerald-50 border-emerald-200' : 'bg-red-50 border-red-200'}`}>
-              <div className="flex justify-between mb-1"><span className="font-bold text-slate-700 dark:text-slate-200 dark:text-slate-200">{scanResult.predicted_class}</span><span className={`font-bold ${scanResult.predicted_class === 'Normal' ? 'text-emerald-600' : 'text-red-600'}`}>{scanResult.severity} · {scanResult.confidence}</span></div>
-              <p className="text-slate-600 dark:text-teal-100 dark:text-teal-100 text-[11px]">{scanResult.recommendation}</p>
-            </div>
-          )}
-        </div>
-
-        {/* Prescription Form */}
-        <div className="space-y-2">
-          <h4 className="text-[10px] font-bold text-slate-500 dark:text-teal-200 dark:text-teal-200 uppercase tracking-wider flex items-center gap-1.5"><Pill size={11} className="text-emerald-500 dark:emerald-400" /> e-Prescription</h4>
-          <div className="bg-white dark:bg-emerald-900 dark:bg-emerald-900 p-4 rounded-2xl border border-slate-200 dark:border-emerald-800 dark:border-emerald-800 shadow-sm space-y-2.5">
-            {!patient ? <p className="text-xs text-slate-400 dark:text-teal-300 dark:text-teal-300 text-center py-2">Select a patient first</p> : (
-              <>
-                <input type="text" placeholder="Medication name..." value={prescForm.name}
-                  onChange={e => { setPrescForm(f => ({ ...f, name: e.target.value })); setInteractionWarning(e.target.value && patient?.activeMedications?.length ? checkInteractions(e.target.value, patient.activeMedications) : null); }}
-                  className="w-full p-2.5 bg-stone-50 dark:bg-teal-950 border border-slate-200 dark:border-emerald-800 dark:border-emerald-800 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 dark:emerald-400/20" />
-                <div className="grid grid-cols-2 gap-2">
-                  <input type="text" placeholder="Dosage" value={prescForm.dosage} onChange={e => setPrescForm(f => ({ ...f, dosage: e.target.value }))} className="p-2.5 bg-stone-50 dark:bg-teal-950 border border-slate-200 dark:border-emerald-800 dark:border-emerald-800 rounded-xl text-xs focus:outline-none focus:ring-2 focus:ring-emerald-500 dark:emerald-400/20" />
-                  <input type="text" placeholder="Frequency" value={prescForm.freq} onChange={e => setPrescForm(f => ({ ...f, freq: e.target.value }))} className="p-2.5 bg-stone-50 dark:bg-teal-950 border border-slate-200 dark:border-emerald-800 dark:border-emerald-800 rounded-xl text-xs focus:outline-none focus:ring-2 focus:ring-emerald-500 dark:emerald-400/20" />
-                </div>
-                <input type="text" placeholder="Duration (e.g. 7 days)" value={prescForm.duration} onChange={e => setPrescForm(f => ({ ...f, duration: e.target.value }))} className="w-full p-2.5 bg-stone-50 dark:bg-teal-950 border border-slate-200 dark:border-emerald-800 dark:border-emerald-800 rounded-xl text-xs focus:outline-none focus:ring-2 focus:ring-emerald-500 dark:emerald-400/20" />
-                <AnimatePresence>{interactionWarning && (
-                  <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} className="p-2.5 bg-red-50 border border-red-200 rounded-xl flex gap-2">
-                    <AlertTriangle className="text-red-600 flex-shrink-0" size={13} />
-                    <p className="text-[10px] font-bold text-red-700 leading-tight">{interactionWarning}</p>
-                  </motion.div>
-                )}</AnimatePresence>
-                <button onClick={handleSign} disabled={signing || !prescForm.name}
-                  className="w-full py-2.5 bg-slate-900 text-white rounded-xl text-xs font-bold hover:bg-slate-800 transition-all flex items-center justify-center gap-2 disabled:opacity-50"
-                >{signing ? <Loader2 size={14} className="animate-spin" /> : <FileText size={14} />} Sign & Generate QR</button>
-              </>
-            )}
-          </div>
-        </div>
-
-        <AnimatePresence>{qrPayload && (
-          <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="bg-white dark:bg-emerald-900 dark:bg-emerald-900 p-4 rounded-2xl border border-slate-200 dark:border-emerald-800 dark:border-emerald-800 shadow-sm">
-            <div className="flex items-center justify-between mb-2"><span className="text-xs font-bold text-slate-700 dark:text-slate-200 dark:text-slate-200">Pharmacy QR</span><button onClick={() => setQrPayload(null)} className="text-slate-400 dark:text-teal-300 dark:text-teal-300 hover:text-slate-600 dark:text-teal-100 dark:text-teal-100"><X size={13} /></button></div>
-            <div className="flex justify-center p-3 bg-white dark:bg-emerald-900 dark:bg-emerald-900 rounded-xl border border-slate-100 dark:border-emerald-800 dark:border-emerald-800"><QRCodeSVG value={qrPayload} size={130} level="M" /></div>
-          </motion.div>
-        )}</AnimatePresence>
-      </div>
+    <div className="flex-1 flex flex-col items-center justify-center bg-[#0B1412] text-[#E6F1ED]">
+      <BrainCircuit size={64} className="text-[#22C55E] mb-6 animate-pulse" />
+      <h2 className="text-2xl font-black uppercase tracking-widest">AI Clinical Assistant</h2>
+      <p className="text-[#6B8077] font-black uppercase tracking-widest mt-4">Interface Initializing...</p>
     </div>
   );
 };
+
 
 // ---------------------------------------------------------------------------
 // TAB 2: Patient Registry
@@ -411,88 +378,102 @@ const PatientRegistryTab = ({ patients, onSelectPatient }: { patients: any[]; on
   const stats = { total: patients.length, critical: patients.filter(p => p.priority === 'red').length, monitor: patients.filter(p => p.priority === 'yellow').length, stable: patients.filter(p => p.priority === 'green').length };
 
   return (
-    <div className="flex-1 overflow-y-auto p-6 space-y-6">
-      <div className="flex items-center justify-between">
-        <div><h2 className="text-xl font-bold text-slate-900 dark:text-white dark:text-white">Patient Registry</h2><p className="text-sm text-slate-400 dark:text-teal-300 dark:text-teal-300 mt-0.5">All patients assigned to your care</p></div>
-      </div>
-
-      {/* Stats cards */}
-      <div className="grid grid-cols-4 gap-4">
-        {[
-          { label: 'Total Patients', val: stats.total, color: 'sky', icon: Users },
-          { label: 'Critical', val: stats.critical, color: 'red', icon: AlertCircle },
-          { label: 'Monitor', val: stats.monitor, color: 'amber', icon: Clock },
-          { label: 'Stable', val: stats.stable, color: 'emerald', icon: CheckCircle },
-        ].map(({ label, val, color, icon: Icon }) => (
-          <div key={label} className={`bg-white dark:bg-emerald-900 dark:bg-emerald-900 p-5 rounded-2xl border border-slate-200 dark:border-emerald-800 dark:border-emerald-800 shadow-sm`}>
-            <div className="flex items-center justify-between mb-2">
-              <span className="text-xs font-bold text-slate-400 dark:text-teal-300 dark:text-teal-300 uppercase">{label}</span>
-              <div className={`p-2 bg-${color}-50 rounded-xl`}><Icon size={16} className={`text-${color}-500`} /></div>
-            </div>
-            <div className={`text-3xl font-bold text-${color}-600`}>{val}</div>
+    <div className="flex-1 flex flex-col bg-slate-50 dark:bg-slate-950 transition-all duration-300">
+      <div className="p-8 bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800">
+        <div className="max-w-7xl mx-auto flex flex-col md:flex-row md:items-center justify-between gap-6">
+          <div>
+            <h2 className="text-3xl font-black text-slate-900 dark:text-white tracking-tight">Patient Registry</h2>
+            <p className="text-slate-500 dark:text-slate-400 font-medium mt-1">Manage and access comprehensive records for all {patients.length} assigned cases.</p>
           </div>
-        ))}
+          <div className="relative w-full md:w-96">
+            <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
+            <input type="text" placeholder="Search by name or clinical ID..." value={search} onChange={e => setSearch(e.target.value)}
+              className="w-full pl-12 pr-4 py-4 bg-slate-100 dark:bg-slate-800 border-2 border-transparent focus:border-emerald-500 dark:focus:border-emerald-400 rounded-2xl text-sm font-bold text-slate-900 dark:text-white outline-none transition-all shadow-sm" />
+          </div>
+        </div>
       </div>
 
-      {/* Filters */}
-      <div className="flex items-center gap-3 flex-wrap">
-        <div className="relative flex-1 min-w-48">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 dark:text-teal-300 dark:text-teal-300" size={14} />
-          <input type="text" placeholder="Search patients..." value={search} onChange={e => setSearch(e.target.value)}
-            className="w-full pl-9 pr-4 py-2.5 bg-white dark:bg-emerald-900 dark:bg-emerald-900 border border-slate-200 dark:border-emerald-800 dark:border-emerald-800 rounded-xl text-sm text-slate-900 dark:text-white dark:text-white focus:ring-2 focus:ring-emerald-500 dark:emerald-400/20 outline-none" />
-        </div>
-        <div className="flex gap-2">
-          {(['all', 'red', 'yellow', 'green'] as const).map(f => (
-            <button key={f} onClick={() => setFilterPriority(f)}
-              className={`px-3 py-2 rounded-xl text-xs font-bold transition-all ${filterPriority === f ? 'bg-slate-900 text-white' : 'bg-white dark:bg-emerald-900 dark:bg-emerald-900 border border-slate-200 dark:border-emerald-800 dark:border-emerald-800 text-slate-500 dark:text-teal-200 dark:text-teal-200 hover:border-slate-400'}`}
-            >{f === 'all' ? 'All' : f === 'red' ? '🔴 Critical' : f === 'yellow' ? '🟡 Monitor' : '🟢 Stable'}</button>
-          ))}
-        </div>
-        <select value={sortBy} onChange={e => setSortBy(e.target.value as any)}
-          className="px-3 py-2.5 bg-white dark:bg-emerald-900 dark:bg-emerald-900 border border-slate-200 dark:border-emerald-800 dark:border-emerald-800 rounded-xl text-sm font-medium text-slate-600 dark:text-teal-100 dark:text-teal-100 focus:outline-none focus:ring-2 focus:ring-emerald-500 dark:emerald-400/20"
-        >
-          <option value="priority">Sort: Priority</option>
-          <option value="name">Sort: Name</option>
-          <option value="age">Sort: Age</option>
-        </select>
-      </div>
+      <div className="flex-1 overflow-y-auto p-8">
+        <div className="max-w-7xl mx-auto space-y-8">
+          {/* Stats cards */}
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-6">
+            {[
+              { label: 'Total Patients', val: stats.total, color: 'emerald', icon: Users },
+              { label: 'Critical', val: stats.critical, color: 'red', icon: AlertCircle },
+              { label: 'Monitor', val: stats.monitor, color: 'amber', icon: Clock },
+              { label: 'Stable', val: stats.stable, color: 'sky', icon: CheckCircle },
+            ].map(({ label, val, color, icon: Icon }) => (
+              <div key={label} className="bg-white dark:bg-slate-900 p-6 rounded-[2rem] border border-slate-200 dark:border-slate-800 shadow-xl shadow-slate-200/20 dark:shadow-none">
+                <div className="flex items-center justify-between mb-4">
+                  <span className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest">{label}</span>
+                  <div className={`p-2.5 bg-${color}-500/10 rounded-xl`}><Icon size={18} className={`text-${color}-500`} /></div>
+                </div>
+                <div className={`text-3xl font-black text-slate-900 dark:text-white tabular-nums`}>{val}</div>
+              </div>
+            ))}
+          </div>
 
-      {/* Table */}
-      <div className="bg-white dark:bg-emerald-900 dark:bg-emerald-900 rounded-2xl border border-slate-200 dark:border-emerald-800 dark:border-emerald-800 shadow-sm overflow-hidden">
-        <div className="grid grid-cols-12 px-5 py-3 bg-stone-50 dark:bg-teal-950 border-b border-slate-200 dark:border-emerald-800 dark:border-emerald-800 text-[10px] font-bold text-slate-400 dark:text-teal-300 dark:text-teal-300 uppercase tracking-wider">
-          <div className="col-span-1">Status</div><div className="col-span-3">Patient</div><div className="col-span-1">Age</div>
-          <div className="col-span-1">Blood</div><div className="col-span-2">Heart Rate</div><div className="col-span-2">SpO₂</div>
-          <div className="col-span-1">Meds</div><div className="col-span-1">Action</div>
-        </div>
-        <div className="divide-y divide-slate-100">
-          {filtered.length === 0 && <div className="py-12 text-center text-slate-400 dark:text-teal-300 dark:text-teal-300 text-sm">No patients match your filters</div>}
-          {filtered.map(p => (
-            <motion.div key={p.id} initial={{ opacity: 0 }} animate={{ opacity: 1 }}
-              className="grid grid-cols-12 px-5 py-4 items-center hover:bg-stone-50 dark:bg-teal-950 transition-colors group"
-            >
-              <div className="col-span-1">
-                <div className={`w-2.5 h-2.5 rounded-full ${p.priority === 'red' ? 'bg-red-500 animate-pulse' : p.priority === 'yellow' ? 'bg-amber-500' : 'bg-emerald-500'}`} />
-              </div>
-              <div className="col-span-3">
-                <div className="font-bold text-slate-900 dark:text-white dark:text-white text-sm">{p.name}</div>
-                <div className="text-[10px] text-slate-400 dark:text-teal-300 dark:text-teal-300">#{p.id.slice(0,8)}</div>
-              </div>
-              <div className="col-span-1 text-sm text-slate-600 dark:text-teal-100 dark:text-teal-100 font-medium">{p.age}y</div>
-              <div className="col-span-1"><span className="px-2 py-0.5 bg-emerald-50 dark:teal-900 text-emerald-700 dark:emerald-300 text-[10px] font-bold rounded-full">{p.bloodType || '—'}</span></div>
-              <div className="col-span-2">
-                <span className={`text-sm font-bold ${p.vitals.hr > 100 ? 'text-red-600' : 'text-slate-900 dark:text-white dark:text-white'}`}>{p.vitals.hr} <span className="text-[10px] font-normal text-slate-400 dark:text-teal-300 dark:text-teal-300">bpm</span></span>
-              </div>
-              <div className="col-span-2">
-                <span className={`text-sm font-bold ${p.vitals.spo2 < 94 ? 'text-red-600' : 'text-slate-900 dark:text-white dark:text-white'}`}>{p.vitals.spo2}<span className="text-[10px] font-normal text-slate-400 dark:text-teal-300 dark:text-teal-300">%</span></span>
-              </div>
-              <div className="col-span-1 text-xs text-slate-500 dark:text-teal-200 dark:text-teal-200">{p.activeMedications?.length ?? 0}</div>
-              <div className="col-span-1">
-                <button onClick={() => onSelectPatient(p.id)}
-                  className="px-3 py-1.5 bg-emerald-500 dark:emerald-400 text-white text-[10px] font-bold rounded-lg hover:bg-emerald-600 dark:emerald-500 transition-all opacity-0 group-hover:opacity-100 flex items-center gap-1"
-                ><ChevronRight size={11} /> View</button>
-              </div>
-            </motion.div>
-          ))}
+          <div className="flex items-center justify-between flex-wrap gap-4 pt-4 border-t border-slate-200 dark:border-slate-800">
+             <div className="flex gap-2 flex-wrap">
+              {(['all', 'red', 'yellow', 'green'] as const).map(f => (
+                <button key={f} onClick={() => setFilterPriority(f)}
+                  className={`px-5 py-2.5 rounded-xl text-xs font-black transition-all ${filterPriority === f ? 'bg-slate-900 dark:bg-emerald-500 text-white shadow-lg' : 'bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-500 dark:text-slate-400 hover:border-slate-400 dark:hover:border-slate-600'}`}
+                >{f === 'all' ? 'ALL CASES' : f === 'red' ? 'CRITICAL' : f === 'yellow' ? 'MONITOR' : 'STABLE'}</button>
+              ))}
+            </div>
+            <div className="flex items-center gap-3">
+              <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Sort By:</span>
+              <select value={sortBy} onChange={e => setSortBy(e.target.value as any)}
+                className="px-4 py-2.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl text-xs font-black text-slate-700 dark:text-slate-300 focus:outline-none focus:ring-2 focus:ring-emerald-500 transition-all"
+              >
+                <option value="priority">Priority</option>
+                <option value="name">Patient Name</option>
+                <option value="age">Age Range</option>
+              </select>
+            </div>
+          </div>
+
+          {filtered.length === 0 ? (
+            <div className="text-center py-24 bg-white dark:bg-slate-900 rounded-[3rem] border-2 border-dashed border-slate-200 dark:border-slate-800">
+              <Users size={48} className="mx-auto text-slate-200 dark:text-slate-800 mb-4" />
+              <h3 className="text-lg font-black text-slate-400 dark:text-slate-600 uppercase tracking-widest">No matching records found</h3>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6 pb-20">
+              {filtered.map(p => (
+                <motion.div key={p.id} initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }}
+                  className="bg-white dark:bg-slate-900 p-6 rounded-[2.5rem] border border-slate-200 dark:border-slate-800 shadow-xl shadow-slate-200/40 dark:shadow-none hover:shadow-2xl hover:scale-[1.02] transition-all cursor-pointer group relative overflow-hidden"
+                  onClick={() => onSelectPatient(p.id)}
+                >
+                  <div className="absolute top-0 right-0 w-24 h-24 bg-emerald-500/5 rounded-full -mr-12 -mt-12 transition-transform group-hover:scale-150 duration-500" />
+                  <div className="flex items-center justify-between mb-6">
+                    <div className="w-14 h-14 rounded-2xl bg-slate-50 dark:bg-slate-800 flex items-center justify-center text-slate-400 group-hover:bg-emerald-500 group-hover:text-white transition-all duration-300">
+                      <User size={24} />
+                    </div>
+                    <span className={`px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest ${p.priority === 'red' ? 'bg-red-100 text-red-600 dark:bg-red-500/20' : p.priority === 'yellow' ? 'bg-amber-100 text-amber-600 dark:bg-amber-500/20' : 'bg-emerald-100 text-emerald-600 dark:bg-emerald-500/20'}`}>{p.priority} Priority</span>
+                  </div>
+                  <h3 className="text-xl font-black text-slate-900 dark:text-white truncate tracking-tight">{p.name}</h3>
+                  <div className="flex items-center gap-2 mt-1 mb-6">
+                    <span className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-tighter">Clinical ID: <span className="text-slate-600 dark:text-slate-300">#{p.id.slice(0,12)}</span></span>
+                  </div>
+                  <div className="grid grid-cols-2 gap-4 py-4 border-t border-slate-100 dark:border-slate-800">
+                    <div>
+                      <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Heart Rate</p>
+                      <p className="text-sm font-black text-slate-900 dark:text-white tabular-nums flex items-center gap-1.5"><Heart size={14} className="text-red-500" /> {p.vitals.hr} <span className="text-[10px] text-slate-400">BPM</span></p>
+                    </div>
+                    <div>
+                      <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">SpO₂ Level</p>
+                      <p className="text-sm font-black text-slate-900 dark:text-white tabular-nums flex items-center gap-1.5"><Activity size={14} className="text-emerald-500" /> {p.vitals.spo2} <span className="text-[10px] text-slate-400">%</span></p>
+                    </div>
+                  </div>
+                  <div className="mt-4 flex items-center justify-between">
+                    <span className="text-[10px] font-black text-slate-400 dark:text-slate-600 uppercase tracking-widest">Age: {p.age}y</span>
+                    <button className="p-2 bg-slate-50 dark:bg-slate-800 text-slate-400 group-hover:text-emerald-500 rounded-xl transition-colors"><ChevronRight size={18} /></button>
+                  </div>
+                </motion.div>
+              ))}
+            </div>
+          )}
         </div>
       </div>
     </div>
@@ -524,7 +505,6 @@ const ImagingLabTab = ({ patients }: { patients: any[] }) => {
       const { data } = await apiClient.post('/api/vision/analyze_xray', { image_base64: base64, patient_id: selectedPatientId });
       setScanResult(data);
       setScanHistory(prev => [{ ...data, patientName: selectedPatient?.name ?? '—', time: new Date().toLocaleTimeString(), imageUrl: URL.createObjectURL(file) }, ...prev].slice(0, 10));
-
       toast.success(`Analysis complete: ${data.predicted_class}`);
     } catch { toast.error('Analysis failed — check backend connection'); }
     finally { setAnalyzing(false); }
@@ -547,127 +527,158 @@ const ImagingLabTab = ({ patients }: { patients: any[] }) => {
       });
       toast.success('Saved to patient timeline!');
       setDoctorReview('');
-    } catch {
-      toast.error('Failed to save to timeline');
-    } finally {
-      setSavingReview(false);
-    }
+    } catch { toast.error('Failed to save to timeline'); }
+    finally { setSavingReview(false); }
   };
 
   return (
-    <div className="flex-1 flex overflow-hidden">
-      {/* Left: Viewer */}
-      <div className="flex-1 flex flex-col p-6 space-y-4 overflow-y-auto">
-        <div className="flex items-center justify-between">
-          <div><h2 className="text-xl font-bold text-slate-900 dark:text-white dark:text-white">Imaging Lab</h2><p className="text-sm text-slate-400 dark:text-teal-300 dark:text-teal-300">AI-powered radiology analysis</p></div>
-          <div className="flex items-center gap-3">
+    <div className="flex-1 flex flex-col xl:flex-row overflow-hidden bg-slate-50 dark:bg-slate-950 transition-all duration-300">
+      {/* Main Analysis Area */}
+      <div className="flex-1 flex flex-col overflow-y-auto p-6 md:p-8 space-y-8">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
+          <div>
+            <h2 className="text-3xl font-black text-slate-900 dark:text-white tracking-tight">Imaging Lab</h2>
+            <p className="text-slate-500 dark:text-slate-400 font-medium mt-1">Next-gen AI diagnostics for clinical radiology analysis.</p>
+          </div>
+          <div className="flex flex-wrap items-center gap-3">
             <select value={selectedPatientId} onChange={e => setSelectedPatientId(e.target.value)}
-              className="px-4 py-2.5 bg-white dark:bg-emerald-900 dark:bg-emerald-900 border border-slate-200 dark:border-emerald-800 dark:border-emerald-800 rounded-xl text-sm font-medium focus:outline-none focus:ring-2 focus:ring-emerald-500 dark:emerald-400/20"
+              className="px-5 py-3 bg-white dark:bg-slate-900 border-2 border-slate-100 dark:border-slate-800 rounded-2xl text-sm font-black text-slate-700 dark:text-white outline-none focus:border-emerald-500 transition-all cursor-pointer min-w-[200px]"
             >
               {patients.map(p => <option key={p.id} value={p.id}>{p.name || 'Unnamed'}</option>)}
             </select>
             <button onClick={() => setOverlay(!overlay)} disabled={!scanResult}
-              className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold transition-all disabled:opacity-40 ${overlay ? 'bg-emerald-500 dark:emerald-400 text-white shadow-lg shadow-emerald-200 dark:teal-700' : 'bg-white dark:bg-emerald-900 dark:bg-emerald-900 border border-slate-200 dark:border-emerald-800 dark:border-emerald-800 text-slate-600 dark:text-teal-100 dark:text-teal-100'}`}
-            ><Layers size={13} /> AI Overlay {overlay ? 'ON' : 'OFF'}</button>
+              className={`flex items-center gap-2 px-5 py-3 rounded-2xl text-xs font-black transition-all disabled:opacity-40 shadow-sm ${overlay ? 'bg-emerald-500 text-white shadow-emerald-500/20' : 'bg-white dark:bg-slate-900 border-2 border-slate-100 dark:border-slate-800 text-slate-600 dark:text-slate-300'}`}
+            ><Layers size={16} /> AI VISION OVERLAY {overlay ? 'ACTIVE' : 'INACTIVE'}</button>
           </div>
         </div>
 
-        {/* Main scan viewer */}
-        <div className="relative bg-slate-900 rounded-3xl overflow-hidden border-2 border-slate-700 shadow-2xl" style={{ aspectRatio: '4/3' }}>
-          {scanImageUrl ? <img src={scanImageUrl} alt="Medical scan" className="w-full h-full object-contain" /> : (
-            <div className="absolute inset-0 flex flex-col items-center justify-center text-slate-600 dark:text-teal-100 dark:text-teal-100 gap-3">
-              <div className="w-16 h-16 rounded-2xl bg-slate-800 flex items-center justify-center"><Microscope size={32} className="text-slate-500 dark:text-teal-200 dark:text-teal-200" /></div>
-              <div className="text-center"><p className="text-sm font-semibold text-slate-400 dark:text-teal-300 dark:text-teal-300">No scan loaded</p><p className="text-xs text-slate-600 dark:text-teal-100 dark:text-teal-100">Upload an X-ray, CT, or MRI image</p></div>
-            </div>
-          )}
-
-          {overlay && overlayRegions.length > 0 && (
-            <svg className="absolute inset-0 w-full h-full" viewBox="0 0 100 100" preserveAspectRatio="none">
-              {overlayRegions.map((r, i) => (
-                <g key={i}>
-                  <ellipse cx={r.cx} cy={r.cy} rx={r.rx} ry={r.ry} fill="rgba(239,68,68,0.15)" stroke="rgba(239,68,68,0.9)" strokeWidth="0.5" className="animate-pulse" />
-                  <text x={r.cx} y={r.cy - r.ry - 2} textAnchor="middle" fontSize="3.5" fill="rgba(239,68,68,0.9)" fontWeight="bold">{r.label}</text>
-                </g>
-              ))}
-              <text x="2" y="6" fontSize="3" fill="rgba(239,68,68,0.8)">MediBOT AI Detection</text>
-            </svg>
-          )}
-
-          {analyzing && (
-            <div className="absolute inset-0 bg-black/70 flex flex-col items-center justify-center gap-3">
-              <Loader2 className="animate-spin text-emerald-500 dark:emerald-400" size={40} />
-              <p className="text-white text-sm font-semibold">Analyzing scan...</p>
-              <p className="text-slate-400 dark:text-teal-300 dark:text-teal-300 text-xs">ResNet101 Medical Imaging Model</p>
-            </div>
-          )}
-
-          <div className="absolute bottom-4 right-4 flex gap-2">
-            <button onClick={() => fileRef.current?.click()}
-              className="flex items-center gap-2 px-4 py-2 bg-white dark:bg-emerald-900 dark:bg-emerald-900/20 backdrop-blur-md rounded-xl text-white text-xs font-bold hover:bg-white dark:bg-emerald-900 dark:bg-emerald-900/30 transition-all border border-white/20"
-            ><Upload size={13} /> Upload Scan</button>
-          </div>
-          {scanResult && <div className="absolute top-4 left-4 px-3 py-1.5 bg-black/60 backdrop-blur-md rounded-lg border border-white/10 text-[10px] font-bold text-white">{selectedPatient?.name} — {new Date().toLocaleDateString()}</div>}
-        </div>
-        <input ref={fileRef} type="file" className="hidden" accept="image/*" onChange={e => e.target.files?.[0] && handleScan(e.target.files[0])} />
-
-        {/* Result Card */}
-        {scanResult && scanResult.predicted_class !== 'Error' && (
-          <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
-            className={`p-5 rounded-2xl border ${scanResult.predicted_class === 'Normal' ? 'bg-emerald-50 border-emerald-200' : 'bg-red-50 border-red-200'} space-y-4`}
-          >
-            <div className="flex items-start justify-between">
-              <div>
-                <div className="flex items-center gap-3 mb-1">
-                  <span className="text-xl font-bold text-slate-900 dark:text-white dark:text-white">{scanResult.predicted_class}</span>
-                  <span className={`px-2 py-0.5 rounded-full text-xs font-bold ${scanResult.predicted_class === 'Normal' ? 'bg-emerald-100 text-emerald-700' : 'bg-red-100 text-red-700'}`}>{scanResult.severity} Severity</span>
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+          {/* Scan Viewer */}
+          <div className="lg:col-span-8 space-y-6">
+            <div className="relative bg-slate-900 rounded-[3rem] overflow-hidden border-4 border-slate-200 dark:border-slate-800 shadow-2xl group aspect-[4/3] w-full">
+              {scanImageUrl ? <img src={scanImageUrl} alt="Medical scan" className="w-full h-full object-contain" /> : (
+                <div className="absolute inset-0 flex flex-col items-center justify-center text-slate-700 gap-6">
+                  <div className="w-24 h-24 rounded-[2.5rem] bg-slate-800 flex items-center justify-center border-2 border-slate-700 shadow-inner"><Microscope size={48} className="text-slate-500" /></div>
+                  <div className="text-center space-y-2">
+                    <p className="text-lg font-black text-slate-400 uppercase tracking-widest">No Active Scan</p>
+                    <p className="text-sm font-bold text-slate-600">Upload radiology imagery for AI-assisted clinical review</p>
+                  </div>
                 </div>
-                <p className="text-sm text-slate-600 dark:text-teal-100 dark:text-teal-100">{scanResult.recommendation}</p>
-              </div>
-              <div className="text-right"><p className="text-2xl font-bold text-slate-900 dark:text-white dark:text-white">{scanResult.confidence}</p><p className="text-xs text-slate-400 dark:text-teal-300 dark:text-teal-300">Confidence</p></div>
-            </div>
+              )}
 
-            {/* Doctor Review and Save Option */}
-            <div className="pt-4 border-t border-slate-200 dark:border-emerald-800 dark:border-emerald-800/60 flex flex-col gap-3">
-              <textarea placeholder="Add doctor's review or clinical notes (optional)..." value={doctorReview} onChange={e => setDoctorReview(e.target.value)}
-                className="w-full p-3 bg-white dark:bg-emerald-900 dark:bg-emerald-900 border border-slate-200 dark:border-emerald-800 dark:border-emerald-800 rounded-xl text-sm text-slate-900 dark:text-white dark:text-white font-medium focus:outline-none focus:ring-2 focus:ring-emerald-500 dark:emerald-400/20 resize-none h-16"
-              />
-              <div className="flex justify-between items-center">
-                <p className="text-xs text-slate-500 dark:text-teal-200 dark:text-teal-200 font-medium flex items-center gap-2"><User size={13}/> Will be saved to <strong className="text-slate-700 dark:text-slate-200 dark:text-slate-200">{selectedPatient?.name}'s</strong> medical timeline.</p>
-                <button onClick={handleSaveToTimeline} disabled={savingReview}
-                  className="px-5 py-2.5 bg-slate-900 text-white rounded-xl text-xs font-bold hover:bg-slate-800 transition-colors disabled:opacity-50 flex items-center gap-2"
-                >
-                  {savingReview ? <Loader2 size={14} className="animate-spin" /> : <CheckCircle size={14} />} Save to Timeline
-                </button>
+              {overlay && overlayRegions.length > 0 && (
+                <svg className="absolute inset-0 w-full h-full pointer-events-none" viewBox="0 0 100 100" preserveAspectRatio="none">
+                  {overlayRegions.map((r, i) => (
+                    <g key={i}>
+                      <ellipse cx={r.cx} cy={r.cy} rx={r.rx} ry={r.ry} fill="rgba(239,68,68,0.1)" stroke="rgba(239,68,68,0.8)" strokeWidth="0.8" className="animate-pulse" />
+                      <rect x={r.cx - (r.label.length * 1.5)} y={r.cy - r.ry - 6} width={r.label.length * 3} height="4" rx="1" fill="rgba(239,68,68,0.9)" />
+                      <text x={r.cx} y={r.cy - r.ry - 3} textAnchor="middle" fontSize="2.5" fill="white" fontWeight="black" className="uppercase tracking-tighter">{r.label}</text>
+                    </g>
+                  ))}
+                  <text x="4" y="8" fontSize="2.5" fill="rgba(255,255,255,0.4)" fontWeight="black" className="uppercase tracking-[0.2em]">MediBOT AI Clinical Detection Engine</text>
+                </svg>
+              )}
+
+              {analyzing && (
+                <div className="absolute inset-0 bg-slate-950/80 backdrop-blur-sm flex flex-col items-center justify-center gap-6">
+                  <div className="relative">
+                    <div className="w-20 h-20 border-4 border-emerald-500/20 rounded-full animate-ping absolute inset-0" />
+                    <Loader2 className="animate-spin text-emerald-500" size={80} strokeWidth={1} />
+                  </div>
+                  <div className="text-center space-y-1">
+                    <p className="text-xl font-black text-white uppercase tracking-widest">Neural Processing</p>
+                    <p className="text-emerald-500 text-xs font-black tracking-[0.3em]">RESNET-101 CLINICAL MODEL V2.0</p>
+                  </div>
+                </div>
+              )}
+
+              <div className="absolute bottom-8 right-8">
+                <button onClick={() => fileRef.current?.click()}
+                  className="flex items-center gap-3 px-8 py-4 bg-emerald-500 text-white rounded-2xl font-black text-sm hover:bg-emerald-600 transition-all shadow-2xl shadow-emerald-500/30 active:scale-95 uppercase tracking-widest"
+                ><Upload size={18} /> Load Imagery</button>
               </div>
             </div>
-          </motion.div>
-        )}
+            <input ref={fileRef} type="file" className="hidden" accept="image/*" onChange={e => e.target.files?.[0] && handleScan(e.target.files[0])} />
+          </div>
+
+          {/* Diagnosis & Review */}
+          <div className="lg:col-span-4 space-y-6">
+            <AnimatePresence>
+            {scanResult && scanResult.predicted_class !== 'Error' ? (
+              <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }}
+                className={`p-8 rounded-[2.5rem] border-2 transition-all shadow-xl ${scanResult.predicted_class === 'Normal' ? 'bg-emerald-50 dark:bg-emerald-500/5 border-emerald-100 dark:border-emerald-900/50' : 'bg-red-50 dark:bg-red-500/5 border-red-100 dark:border-red-900/50'}`}
+              >
+                <div className="flex items-center justify-between mb-8">
+                  <span className={`px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest ${scanResult.predicted_class === 'Normal' ? 'bg-emerald-500 text-white' : 'bg-red-500 text-white'}`}>{scanResult.severity} RISK</span>
+                  <div className="text-right">
+                    <p className="text-2xl font-black text-slate-900 dark:text-white tabular-nums">{scanResult.confidence}</p>
+                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-tighter">AI Confidence</p>
+                  </div>
+                </div>
+                
+                <h3 className="text-3xl font-black text-slate-900 dark:text-white tracking-tight mb-2">{scanResult.predicted_class}</h3>
+                <p className="text-sm font-medium text-slate-600 dark:text-slate-400 leading-relaxed mb-8">{scanResult.recommendation}</p>
+
+                <div className="space-y-4 pt-8 border-t border-slate-200/50 dark:border-slate-800">
+                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block">Clinician Verification Note</label>
+                  <textarea placeholder="Document findings or override AI assessment..." value={doctorReview} onChange={e => setDoctorReview(e.target.value)}
+                    className="w-full p-5 bg-white dark:bg-slate-900 border-2 border-slate-100 dark:border-slate-800 rounded-[1.5rem] text-sm text-slate-900 dark:text-white font-medium focus:border-emerald-500 outline-none transition-all resize-none h-32"
+                  />
+                  <button onClick={handleSaveToTimeline} disabled={savingReview}
+                    className="w-full py-4 bg-slate-900 dark:bg-emerald-500 text-white rounded-2xl text-xs font-black tracking-widest hover:opacity-90 transition-all disabled:opacity-50 flex items-center justify-center gap-3 uppercase"
+                  >
+                    {savingReview ? <Loader2 size={16} className="animate-spin" /> : <ShieldCheck size={16} />} Save to Clinical Chart
+                  </button>
+                </div>
+              </motion.div>
+            ) : (
+              <div className="p-8 rounded-[2.5rem] border-2 border-dashed border-slate-200 dark:border-slate-800 bg-white/50 dark:bg-slate-900/50 flex flex-col items-center justify-center text-center space-y-4 h-full min-h-[400px]">
+                <div className="w-16 h-16 rounded-2xl bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-slate-300 dark:text-slate-700"><Sparkles size={32} /></div>
+                <div>
+                  <p className="text-sm font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest">Diagnostic Output</p>
+                  <p className="text-xs font-medium text-slate-500 dark:text-slate-600 px-6">Analysis results will appear here after image processing.</p>
+                </div>
+              </div>
+            )}
+            </AnimatePresence>
+          </div>
+        </div>
       </div>
 
-      {/* Right: Scan History */}
-      <div className="w-72 border-l border-slate-200 dark:border-emerald-800 dark:border-emerald-800 bg-stone-50 dark:bg-teal-950 flex flex-col flex-shrink-0">
-        <div className="p-4 border-b border-slate-200 dark:border-emerald-800 dark:border-emerald-800 bg-white dark:bg-emerald-900 dark:bg-emerald-900">
-          <h3 className="text-sm font-bold text-slate-900 dark:text-white dark:text-white">Session History</h3>
-          <p className="text-[10px] text-slate-400 dark:text-teal-300 dark:text-teal-300">Scans analyzed this session</p>
+      {/* Right Sidebar: Historical Activity */}
+      <div className="xl:w-80 border-l-2 border-slate-100 dark:border-slate-900 bg-white dark:bg-slate-900 flex flex-col flex-shrink-0 transition-all">
+        <div className="p-8 border-b-2 border-slate-50 dark:border-slate-800">
+          <h3 className="text-sm font-black text-slate-900 dark:text-white uppercase tracking-widest flex items-center gap-3">
+             <div className="w-8 h-8 bg-slate-100 dark:bg-slate-800 rounded-xl flex items-center justify-center text-slate-400"><History size={16}/></div>
+             Session Logs
+          </h3>
+          <p className="text-[10px] font-black text-slate-400 uppercase tracking-tighter mt-1">Live tracking of analyzed cases</p>
         </div>
-        <div className="flex-1 overflow-y-auto p-3 space-y-2">
-          {scanHistory.length === 0 && <div className="text-center text-slate-400 dark:text-teal-300 dark:text-teal-300 text-xs py-8">No scans yet this session</div>}
+        <div className="flex-1 overflow-y-auto p-6 space-y-4">
+          {scanHistory.length === 0 && (
+             <div className="text-center py-20 space-y-4 opacity-40">
+                <div className="w-12 h-12 bg-slate-50 dark:bg-slate-800 rounded-full mx-auto flex items-center justify-center text-slate-300"><Clock size={24}/></div>
+                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">No scans logged</p>
+             </div>
+          )}
           {scanHistory.map((s, i) => (
-            <div key={i} className="bg-white dark:bg-emerald-900 dark:bg-emerald-900 p-3 rounded-xl border border-slate-200 dark:border-emerald-800 dark:border-emerald-800 shadow-sm">
-              <div className="flex items-center gap-2 mb-1.5">
-                <div className="w-10 h-10 rounded-lg overflow-hidden bg-slate-900 flex-shrink-0">
-                  {s.imageUrl && <img src={s.imageUrl} alt="" className="w-full h-full object-cover opacity-80" />}
+            <motion.div key={i} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
+              className="bg-slate-50 dark:bg-slate-800/50 p-4 rounded-2xl border-2 border-transparent hover:border-slate-100 dark:hover:border-slate-700 transition-all cursor-pointer group"
+            >
+              <div className="flex items-center gap-4 mb-4">
+                <div className="w-12 h-12 rounded-xl overflow-hidden bg-slate-900 flex-shrink-0 shadow-lg">
+                  {s.imageUrl && <img src={s.imageUrl} alt="" className="w-full h-full object-cover opacity-80 group-hover:opacity-100 transition-opacity" />}
                 </div>
                 <div className="min-w-0">
-                  <p className="text-xs font-bold text-slate-900 dark:text-white dark:text-white truncate">{s.patientName}</p>
-                  <p className="text-[10px] text-slate-400 dark:text-teal-300 dark:text-teal-300">{s.time}</p>
+                  <p className="text-xs font-black text-slate-900 dark:text-white truncate uppercase tracking-tight">{s.patientName}</p>
+                  <p className="text-[9px] font-black text-slate-400 dark:text-slate-500 tabular-nums">{s.time}</p>
                 </div>
               </div>
-              <div className="flex items-center justify-between">
-                <span className="text-xs font-bold text-slate-700 dark:text-slate-200 dark:text-slate-200">{s.predicted_class}</span>
-                <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full ${s.predicted_class === 'Normal' ? 'bg-emerald-50 text-emerald-700' : 'bg-red-50 text-red-700'}`}>{s.severity}</span>
+              <div className="flex items-center justify-between gap-2">
+                <span className="text-[10px] font-black text-slate-700 dark:text-slate-300 uppercase tracking-widest truncate">{s.predicted_class}</span>
+                <span className={`text-[9px] font-black px-2 py-0.5 rounded-full uppercase tracking-tighter ${s.predicted_class === 'Normal' ? 'bg-emerald-500 text-white' : 'bg-red-500 text-white'}`}>{s.severity}</span>
               </div>
-            </div>
+            </motion.div>
           ))}
         </div>
       </div>
@@ -744,156 +755,152 @@ const PharmacyHubTab = ({ patients }: { patients: any[] }) => {
   };
 
   return (
-    <div className="flex-1 flex flex-col lg:flex-row overflow-hidden bg-stone-50 dark:bg-teal-950">
-      {/* Left: Write Prescription */}
-      <div className="w-full lg:w-[450px] border-r border-slate-200 dark:border-emerald-800 dark:border-emerald-800 bg-white dark:bg-emerald-900 dark:bg-emerald-900 flex flex-col h-full flex-shrink-0 shadow-[4px_0_24px_rgba(0,0,0,0.02)] z-10">
-        <div className="p-6 border-b border-slate-100 dark:border-emerald-800 dark:border-emerald-800 bg-white dark:bg-emerald-900 dark:bg-emerald-900">
-          <h2 className="text-2xl font-black text-slate-900 dark:text-white dark:text-white tracking-tight flex items-center gap-2"><Pill className="text-emerald-500 dark:emerald-400" size={24}/> E-Prescribe</h2>
-          <p className="text-sm text-slate-500 dark:text-teal-200 dark:text-teal-200 mt-1 font-medium">Issue digital medications securely</p>
+    <div className="flex-1 flex flex-col lg:flex-row overflow-hidden bg-[#0B1412]">
+      <div className="w-full lg:w-[450px] border-r border-white/5 bg-[#0F1F1B] flex flex-col h-full flex-shrink-0 shadow-2xl z-10">
+        <div className="p-8 border-b border-white/5 bg-[#132823]/50">
+          <h2 className="text-2xl font-black text-[#E6F1ED] tracking-tighter uppercase flex items-center gap-3"><Pill className="text-[#22C55E]" size={24}/> E-Prescribe Hub</h2>
+          <p className="text-[10px] font-black text-[#6B8077] uppercase tracking-[0.2em] mt-2">Authenticated Digital RX Issuance</p>
         </div>
         
-        <div className="flex-1 overflow-y-auto p-6 space-y-6 bg-stone-50 dark:bg-teal-950/50">
-          {/* Patient Selection */}
-          <div className="space-y-2">
-            <label className="text-xs font-bold text-slate-500 dark:text-teal-200 dark:text-teal-200 uppercase tracking-wider flex items-center gap-2"><User size={14}/> Select Patient</label>
+        <div className="flex-1 overflow-y-auto p-8 space-y-10">
+          <div className="space-y-3">
+            <label className="text-[10px] font-black text-[#6B8077] uppercase tracking-widest flex items-center gap-2"><User size={14}/> Active Chart</label>
             <select value={selectedPatientId} onChange={e => setSelectedPatientId(e.target.value)}
-              className="w-full p-4 bg-white dark:bg-emerald-900 dark:bg-emerald-900 border border-slate-200 dark:border-emerald-800 dark:border-emerald-800 rounded-2xl text-sm font-bold text-slate-800 dark:text-slate-100 dark:text-slate-100 focus:outline-none focus:border-emerald-500 dark:emerald-400 focus:ring-4 focus:ring-emerald-500 dark:emerald-400/10 transition-all shadow-sm"
+              className="w-full p-5 bg-[#0B1412] border border-white/5 rounded-2xl text-sm font-black text-[#E6F1ED] outline-none focus:border-[#22C55E]/50 transition-all uppercase tracking-tight"
             >
-              {patients.map(p => <option key={p.id} value={p.id}>{p.name || 'Unnamed'}</option>)}
+              {patients.map(p => <option key={p.id} value={p.id} className="bg-[#0F1F1B]">{p.name || 'Unnamed'}</option>)}
             </select>
           </div>
 
           {selectedPatient && selectedPatient.activeMedications?.length > 0 && (
-            <motion.div initial={{opacity:0, y:10}} animate={{opacity:1, y:0}} className="p-4 bg-gradient-to-br from-amber-50 to-orange-50 border border-amber-200/60 rounded-2xl shadow-inner">
-              <p className="text-xs font-bold text-amber-800 uppercase tracking-widest mb-3 flex items-center gap-2"><Activity size={14}/> Active Medications</p>
+            <motion.div initial={{opacity:0, y:10}} animate={{opacity:1, y:0}} className="p-6 bg-[#22C55E]/5 border border-[#22C55E]/20 rounded-2xl">
+              <p className="text-[10px] font-black text-[#22C55E] uppercase tracking-widest mb-4 flex items-center gap-2"><Activity size={14}/> Concurrent Medications</p>
               <div className="flex flex-wrap gap-2">
                 {selectedPatient.activeMedications.map((m: string, i: number) => (
-                  <span key={i} className="px-3 py-1.5 bg-white dark:bg-emerald-900 dark:bg-emerald-900/80 border border-amber-200/80 text-amber-900 text-xs font-bold rounded-xl shadow-sm backdrop-blur-sm">{m}</span>
+                  <span key={i} className="px-3 py-1.5 bg-[#0B1412] border border-white/5 text-[#9FB3AA] text-[10px] font-black rounded-lg uppercase tracking-widest">{m}</span>
                 ))}
               </div>
             </motion.div>
           )}
 
-          {/* Form */}
-          <div className="space-y-5 bg-white dark:bg-emerald-900 dark:bg-emerald-900 p-6 rounded-[2rem] border border-slate-200 dark:border-emerald-800 dark:border-emerald-800 shadow-sm">
+          <div className="space-y-6 bg-[#132823]/30 p-8 rounded-3xl border border-white/5 shadow-inner">
             <div className="space-y-2">
-              <label className="text-xs font-bold text-slate-500 dark:text-teal-200 dark:text-teal-200 uppercase tracking-wider">Medication Name</label>
-              <input type="text" placeholder="e.g. Amoxicillin" value={prescForm.name}
+              <label className="text-[10px] font-black text-[#6B8077] uppercase tracking-widest ml-1">Medication Specification</label>
+              <input type="text" placeholder="e.g. Lisinopril 10mg" value={prescForm.name}
                 onChange={e => { setPrescForm(f => ({ ...f, name: e.target.value })); setInteractionWarning(e.target.value && selectedPatient?.activeMedications?.length ? checkInteractions(e.target.value, selectedPatient.activeMedications) : null); }}
-                className="w-full p-4 bg-stone-50 dark:bg-teal-950 border border-slate-200 dark:border-emerald-800 dark:border-emerald-800 rounded-2xl text-sm text-slate-900 dark:text-white dark:text-white font-bold focus:outline-none focus:border-emerald-500 dark:emerald-400 focus:ring-4 focus:ring-emerald-500 dark:emerald-400/10 transition-all placeholder:font-medium" />
+                className="w-full p-4 bg-[#0B1412] border border-white/5 focus:border-[#22C55E]/50 rounded-xl text-sm text-[#E6F1ED] font-bold outline-none transition-all placeholder:text-[#6B8077]" />
             </div>
 
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <label className="text-xs font-bold text-slate-500 dark:text-teal-200 dark:text-teal-200 uppercase tracking-wider">Dosage</label>
-                <input type="text" placeholder="500mg" value={prescForm.dosage} onChange={e => setPrescForm(f => ({ ...f, dosage: e.target.value }))} className="w-full p-4 bg-stone-50 dark:bg-teal-950 border border-slate-200 dark:border-emerald-800 dark:border-emerald-800 rounded-2xl text-sm text-slate-900 dark:text-white dark:text-white font-bold focus:outline-none focus:border-emerald-500 dark:emerald-400 focus:ring-4 focus:ring-emerald-500 dark:emerald-400/10 transition-all placeholder:font-medium" />
+                <label className="text-[10px] font-black text-[#6B8077] uppercase tracking-widest ml-1">Dosage</label>
+                <input type="text" placeholder="500mg" value={prescForm.dosage} onChange={e => setPrescForm(f => ({ ...f, dosage: e.target.value }))} className="w-full p-4 bg-[#0B1412] border border-white/5 focus:border-[#22C55E]/50 rounded-xl text-sm text-[#E6F1ED] font-bold outline-none transition-all placeholder:text-[#6B8077]" />
               </div>
               <div className="space-y-2">
-                <label className="text-xs font-bold text-slate-500 dark:text-teal-200 dark:text-teal-200 uppercase tracking-wider">Frequency</label>
-                <input type="text" placeholder="Twice daily" value={prescForm.freq} onChange={e => setPrescForm(f => ({ ...f, freq: e.target.value }))} className="w-full p-4 bg-stone-50 dark:bg-teal-950 border border-slate-200 dark:border-emerald-800 dark:border-emerald-800 rounded-2xl text-sm text-slate-900 dark:text-white dark:text-white font-bold focus:outline-none focus:border-emerald-500 dark:emerald-400 focus:ring-4 focus:ring-emerald-500 dark:emerald-400/10 transition-all placeholder:font-medium" />
+                <label className="text-[10px] font-black text-[#6B8077] uppercase tracking-widest ml-1">Cycle</label>
+                <input type="text" placeholder="q.d. / b.i.d." value={prescForm.freq} onChange={e => setPrescForm(f => ({ ...f, freq: e.target.value }))} className="w-full p-4 bg-[#0B1412] border border-white/5 focus:border-[#22C55E]/50 rounded-xl text-sm text-[#E6F1ED] font-bold outline-none transition-all placeholder:text-[#6B8077]" />
               </div>
             </div>
 
             <div className="space-y-2">
-              <label className="text-xs font-bold text-slate-500 dark:text-teal-200 dark:text-teal-200 uppercase tracking-wider">Duration</label>
-              <input type="text" placeholder="7 days" value={prescForm.duration} onChange={e => setPrescForm(f => ({ ...f, duration: e.target.value }))} className="w-full p-4 bg-stone-50 dark:bg-teal-950 border border-slate-200 dark:border-emerald-800 dark:border-emerald-800 rounded-2xl text-sm text-slate-900 dark:text-white dark:text-white font-bold focus:outline-none focus:border-emerald-500 dark:emerald-400 focus:ring-4 focus:ring-emerald-500 dark:emerald-400/10 transition-all placeholder:font-medium" />
+              <label className="text-[10px] font-black text-[#6B8077] uppercase tracking-widest ml-1">Regimen Duration</label>
+              <input type="text" placeholder="14 Days" value={prescForm.duration} onChange={e => setPrescForm(f => ({ ...f, duration: e.target.value }))} className="w-full p-4 bg-[#0B1412] border border-white/5 focus:border-[#22C55E]/50 rounded-xl text-sm text-[#E6F1ED] font-bold outline-none transition-all placeholder:text-[#6B8077]" />
             </div>
 
             <div className="space-y-2">
-              <label className="text-xs font-bold text-slate-500 dark:text-teal-200 dark:text-teal-200 uppercase tracking-wider">Clinical Notes</label>
-              <textarea placeholder="Take with food..." value={prescForm.notes} onChange={e => setPrescForm(f => ({ ...f, notes: e.target.value }))} className="w-full p-4 bg-stone-50 dark:bg-teal-950 border border-slate-200 dark:border-emerald-800 dark:border-emerald-800 rounded-2xl text-sm text-slate-900 dark:text-white dark:text-white font-medium focus:outline-none focus:border-emerald-500 dark:emerald-400 focus:ring-4 focus:ring-emerald-500 dark:emerald-400/10 transition-all resize-none h-24" />
+              <label className="text-[10px] font-black text-[#6B8077] uppercase tracking-widest ml-1">Clinical Notes</label>
+              <textarea placeholder="Instructional directives..." value={prescForm.notes} onChange={e => setPrescForm(f => ({ ...f, notes: e.target.value }))} className="w-full p-4 bg-[#0B1412] border border-white/5 focus:border-[#22C55E]/50 rounded-xl text-sm text-[#E6F1ED] font-medium outline-none transition-all resize-none h-24 placeholder:text-[#6B8077]" />
             </div>
           </div>
 
           <AnimatePresence>{interactionWarning && (
-            <motion.div initial={{ opacity: 0, scale: 0.95, y: -10 }} animate={{ opacity: 1, scale: 1, y: 0 }} className="p-4 bg-red-50 border-2 border-red-200 rounded-2xl flex gap-3 shadow-sm">
-              <AlertTriangle className="text-red-500 flex-shrink-0 mt-0.5" size={20} />
-              <p className="text-sm font-bold text-red-700 leading-relaxed">{interactionWarning}</p>
+            <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} className="p-5 bg-[#EF4444]/10 border border-[#EF4444]/20 rounded-2xl flex gap-4">
+              <AlertTriangle className="text-[#EF4444] flex-shrink-0 mt-0.5" size={20} />
+              <p className="text-[11px] font-black text-[#EF4444] leading-relaxed uppercase tracking-widest">{interactionWarning}</p>
             </motion.div>
           )}</AnimatePresence>
 
           <button onClick={triggerSign} disabled={signing || !prescForm.name}
-            className="w-full py-4 bg-gradient-to-r from-emerald-500 dark:emerald-400 to-indigo-600 text-white rounded-2xl text-sm font-black tracking-widest hover:from-emerald-500 dark:emerald-400 hover:to-indigo-500 transition-all flex items-center justify-center gap-3 disabled:opacity-50 shadow-xl shadow-emerald-500 dark:emerald-400/20 active:scale-[0.98]"
+            className="w-full py-5 bg-[#22C55E] text-white rounded-2xl text-xs font-black tracking-[0.2em] hover:bg-[#1DA851] transition-all flex items-center justify-center gap-3 disabled:opacity-50 shadow-2xl shadow-[#22C55E]/20 active:scale-[0.98] uppercase"
           >
             {signing ? <Loader2 size={20} className="animate-spin" /> : <Sparkles size={20} />} 
-            AUTHORIZE & GENERATE
+            AUTHORIZE E-PRESCRIPTION
           </button>
 
           <AnimatePresence>{qrPayload && (
-            <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="bg-white dark:bg-emerald-900 dark:bg-emerald-900 p-6 rounded-[2rem] border border-slate-200 dark:border-emerald-800 dark:border-emerald-800 shadow-2xl relative overflow-hidden mt-8">
-              <div className="absolute top-0 left-0 w-full h-1.5 bg-gradient-to-r from-emerald-400 to-emerald-500 dark:emerald-400" />
-              <div className="flex items-center justify-between mb-6">
-                <span className="text-sm font-black text-slate-800 dark:text-slate-100 dark:text-slate-100 uppercase tracking-widest">E-Prescription QR</span>
-                <button onClick={() => setQrPayload(null)} className="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center text-slate-400 dark:text-teal-300 dark:text-teal-300 hover:text-slate-700 dark:text-slate-200 dark:text-slate-200 hover:bg-slate-200 transition-colors"><X size={16} /></button>
+            <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="bg-[#132823] p-8 rounded-3xl border border-[#22C55E]/40 shadow-2xl relative overflow-hidden mt-8">
+              <div className="absolute top-0 left-0 w-full h-1 bg-[#22C55E]" />
+              <div className="flex items-center justify-between mb-8">
+                <span className="text-[10px] font-black text-[#22C55E] uppercase tracking-widest">Encrypted RX Payload</span>
+                <button onClick={() => setQrPayload(null)} className="p-2 bg-[#0B1412] border border-white/5 rounded-xl text-[#6B8077] hover:text-[#E6F1ED] transition-colors"><X size={16} /></button>
               </div>
-              <div className="flex justify-center p-4 bg-white dark:bg-emerald-900 dark:bg-emerald-900 rounded-2xl border-2 border-dashed border-slate-200 dark:border-emerald-800 dark:border-emerald-800 mb-4">
-                <QRCodeSVG value={qrPayload} size={160} level="M" />
+              <div className="flex justify-center p-8 bg-white rounded-2xl shadow-inner mb-6">
+                <QRCodeSVG value={qrPayload} size={160} level="H" includeMargin />
               </div>
-              <p className="text-xs text-slate-500 dark:text-teal-200 dark:text-teal-200 text-center font-semibold px-4">Patient can scan this code at any registered MediBOT pharmacy.</p>
+              <p className="text-[10px] text-[#6B8077] text-center font-black uppercase tracking-widest px-4">Patient can authenticate at any digital pharmacy terminal.</p>
             </motion.div>
           )}</AnimatePresence>
         </div>
       </div>
 
-      {/* Right: Prescription History */}
-      <div className="flex-1 overflow-y-auto p-4 md:p-8 bg-stone-50 dark:bg-teal-950 relative h-full">
-        <div className="max-w-4xl mx-auto space-y-6 pb-20">
-          <div className="sticky top-0 z-10 bg-stone-50 dark:bg-teal-950/90 backdrop-blur-xl py-4 border-b border-slate-200 dark:border-emerald-800 dark:border-emerald-800/50 mb-6 flex justify-between items-end">
+      <div className="flex-1 overflow-y-auto p-10 bg-[#0B1412] relative h-full">
+        <div className="max-w-4xl mx-auto space-y-10 pb-24">
+          <div className="sticky top-0 z-10 bg-[#0B1412]/80 backdrop-blur-xl py-6 border-b border-white/5 mb-10 flex justify-between items-end">
             <div>
-              <h2 className="text-2xl font-black text-slate-900 dark:text-white dark:text-white tracking-tight">Rx History</h2>
-              <p className="text-sm text-slate-500 dark:text-teal-200 dark:text-teal-200 font-medium mt-1">{selectedPatient?.name ? `Records for ${selectedPatient.name}` : 'Select a patient'}</p>
+              <h2 className="text-3xl font-black text-[#E6F1ED] tracking-tighter uppercase">Clinical RX Archive</h2>
+              <p className="text-[10px] font-black text-[#6B8077] uppercase tracking-[0.2em] mt-2">{selectedPatient?.name ? `Historical Records for ${selectedPatient.name}` : 'Awaiting chart selection'}</p>
             </div>
-            <div className="px-4 py-2 bg-white dark:bg-emerald-900 dark:bg-emerald-900 rounded-2xl border border-slate-200 dark:border-emerald-800 dark:border-emerald-800 shadow-sm">
-              <span className="text-xs font-black text-slate-500 dark:text-teal-200 dark:text-teal-200 uppercase tracking-widest flex items-center gap-2">
-                <History size={14} /> Issued: {rxHistory.length}
+            <div className="px-5 py-2.5 bg-[#0F1F1B] rounded-xl border border-white/5 shadow-sm">
+              <span className="text-[10px] font-black text-[#9FB3AA] uppercase tracking-widest flex items-center gap-2 tabular-nums">
+                <History size={14} className="text-[#22C55E]" /> ISSUED: {rxHistory.length}
               </span>
             </div>
           </div>
 
           {loadingRx ? (
-            <div className="flex justify-center py-32"><Loader2 size={40} className="animate-spin text-emerald-500 dark:emerald-400/50" /></div>
+            <div className="flex justify-center py-40"><Loader2 size={48} className="animate-spin text-[#22C55E]/50" /></div>
           ) : rxHistory.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-32 gap-4 text-slate-400 dark:text-teal-300 dark:text-teal-300">
-              <div className="w-24 h-24 rounded-full bg-white dark:bg-emerald-900 dark:bg-emerald-900 border-2 border-dashed border-slate-200 dark:border-emerald-800 dark:border-emerald-800 flex items-center justify-center shadow-sm">
-                <FileText size={40} className="text-slate-300" />
+            <div className="flex flex-col items-center justify-center py-40 gap-6 opacity-30">
+              <div className="w-24 h-24 rounded-full bg-[#132823] border-2 border-dashed border-white/10 flex items-center justify-center shadow-inner text-[#6B8077]">
+                <FileText size={48} />
               </div>
-              <p className="text-slate-500 dark:text-teal-200 dark:text-teal-200 font-bold text-lg">No prescription records found</p>
+              <p className="text-[#9FB3AA] font-black text-xs uppercase tracking-[0.3em]">No Digital Records Found</p>
             </div>
           ) : (
-            <div className="grid gap-4">
+            <div className="grid gap-6">
               {rxHistory.map((rx, i) => (
-                <motion.div key={i} initial={{ opacity: 0, scale: 0.98 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: i * 0.03 }}
-                  className="bg-white dark:bg-emerald-900 dark:bg-emerald-900 p-6 rounded-[2rem] border border-slate-200 dark:border-emerald-800 dark:border-emerald-800 shadow-sm hover:shadow-md transition-all group relative overflow-hidden"
+                <motion.div key={i} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.05 }}
+                  className="bg-[#0F1F1B] p-8 rounded-3xl border border-white/5 shadow-sm hover:border-[#22C55E]/30 transition-all group relative overflow-hidden"
                 >
-                  <div className="absolute top-0 left-0 w-1.5 h-full bg-emerald-500 dark:emerald-400 opacity-0 group-hover:opacity-100 transition-opacity" />
-                  <div className="flex flex-col md:flex-row md:items-start justify-between gap-4">
-                    <div className="flex items-start gap-4">
-                      <div className="w-14 h-14 rounded-2xl bg-emerald-50 dark:teal-900 text-emerald-600 dark:emerald-500 flex items-center justify-center flex-shrink-0 border border-emerald-100 dark:teal-800 shadow-inner">
-                        <Pill size={28} />
+                  <div className="absolute top-0 left-0 w-[4px] h-full bg-[#22C55E] opacity-0 group-hover:opacity-100 transition-opacity" />
+                  <div className="flex flex-col md:flex-row md:items-start justify-between gap-6">
+                    <div className="flex items-start gap-6">
+                      <div className="w-16 h-16 rounded-2xl bg-[#132823] text-[#22C55E] flex items-center justify-center flex-shrink-0 border border-white/5 shadow-inner">
+                        <Pill size={32} />
                       </div>
                       <div>
-                        <div className="flex flex-wrap items-center gap-3 mb-2">
-                          <h4 className="text-lg font-black text-slate-900 dark:text-white dark:text-white">{rx.medications?.[0]?.name || rx.medication}</h4>
-                          <span className="px-3 py-1 bg-slate-100 text-slate-700 dark:text-slate-200 dark:text-slate-200 text-xs font-black rounded-xl">{rx.medications?.[0]?.dosage || rx.dosage}</span>
-                          <span className="px-3 py-1 bg-emerald-50 text-emerald-700 text-[10px] font-black rounded-xl border border-emerald-200/50 uppercase tracking-widest">{rx.status || 'Active'}</span>
+                        <div className="flex flex-wrap items-center gap-4 mb-3">
+                          <h4 className="text-xl font-black text-[#E6F1ED] uppercase tracking-tight">{rx.medications?.[0]?.name || rx.medication}</h4>
+                          <span className="px-3 py-1 bg-[#132823] text-[#9FB3AA] text-[10px] font-black rounded-md border border-white/5 uppercase tracking-widest">{rx.medications?.[0]?.dosage || rx.dosage}</span>
+                          <span className="px-3 py-1 bg-[#22C55E]/10 text-[#22C55E] text-[10px] font-black rounded-md border border-[#22C55E]/20 uppercase tracking-widest">{rx.status || 'Active'}</span>
                         </div>
-                        <p className="text-sm font-bold text-slate-500 dark:text-teal-200 dark:text-teal-200">{rx.medications?.[0]?.frequency || rx.frequency} <span className="mx-2 text-slate-300">•</span> {rx.medications?.[0]?.duration || rx.duration}</p>
+                        <p className="text-sm font-bold text-[#9FB3AA] uppercase tracking-widest">{rx.medications?.[0]?.frequency || rx.frequency} <span className="mx-3 text-[#6B8077] opacity-30">•</span> {rx.medications?.[0]?.duration || rx.duration}</p>
                       </div>
                     </div>
-                    <div className="text-left md:text-right md:min-w-[120px]">
-                      <p className="text-[10px] font-black text-slate-400 dark:text-teal-300 dark:text-teal-300 uppercase tracking-widest mb-1">Date Issued</p>
-                      <p className="text-sm font-black text-slate-800 dark:text-slate-100 dark:text-slate-100">{new Date(rx.timestamp || rx.issuedAt || Date.now()).toLocaleDateString(undefined, {month:'short', day:'numeric', year:'numeric'})}</p>
+                    <div className="text-left md:text-right">
+                      <p className="text-[9px] font-black text-[#6B8077] uppercase tracking-[0.2em] mb-1">Authorization Date</p>
+                      <p className="text-sm font-black text-[#E6F1ED] tracking-widest uppercase tabular-nums">{new Date(rx.timestamp || rx.issuedAt || Date.now()).toLocaleDateString(undefined, {month:'short', day:'numeric', year:'numeric'})}</p>
                     </div>
                   </div>
                   {rx.notes && (
-                    <div className="mt-5 p-4 bg-stone-50 dark:bg-teal-950 rounded-2xl border border-slate-100 dark:border-emerald-800 dark:border-emerald-800 text-sm text-slate-600 dark:text-teal-100 dark:text-teal-100 font-medium flex items-start gap-3">
-                      <FileText size={16} className="text-slate-400 dark:text-teal-300 dark:text-teal-300 flex-shrink-0 mt-0.5" />
+                    <div className="mt-8 p-6 bg-[#0B1412] rounded-2xl border border-white/5 text-[13px] text-[#9FB3AA] font-medium leading-relaxed flex items-start gap-4">
+                      <FileText size={18} className="text-[#6B8077] flex-shrink-0 mt-0.5" />
                       <p>{rx.notes}</p>
                     </div>
                   )}
-                  <div className="mt-5 flex items-center justify-between pt-5 border-t border-slate-100 dark:border-emerald-800 dark:border-emerald-800">
-                    <p className="text-[10px] font-black text-slate-400 dark:text-teal-300 dark:text-teal-300 uppercase tracking-widest flex items-center gap-2"><Stethoscope size={14}/> Dr. {rx.prescribedBy}</p>
-                    <p className="text-[10px] font-black text-slate-400 dark:text-teal-300 dark:text-teal-300 uppercase tracking-widest flex items-center gap-2"><User size={14}/> {rx.patientName}</p>
+                  <div className="mt-8 flex items-center justify-between pt-6 border-t border-white/5">
+                    <p className="text-[10px] font-black text-[#6B8077] uppercase tracking-[0.2em] flex items-center gap-2"><Stethoscope size={14} className="text-[#22C55E]"/> MD: {rx.prescribedBy}</p>
+                    <p className="text-[10px] font-black text-[#6B8077] uppercase tracking-[0.2em] flex items-center gap-2"><User size={14}/> PATIENT: {rx.patientName}</p>
                   </div>
                 </motion.div>
               ))}
@@ -904,21 +911,22 @@ const PharmacyHubTab = ({ patients }: { patients: any[] }) => {
 
       <AnimatePresence>
         {showDDIModal && (
-          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-md flex items-center justify-center p-4">
-            <motion.div initial={{ scale: 0.9, y: 20 }} animate={{ scale: 1, y: 0 }} exit={{ scale: 0.9, y: 20 }} className="bg-white dark:bg-emerald-900 dark:bg-emerald-900 rounded-[2rem] p-8 max-w-md w-full shadow-2xl border border-slate-200 dark:border-emerald-800 dark:border-emerald-800">
-              <div className="w-20 h-20 rounded-full bg-red-50 border-4 border-red-100 flex items-center justify-center mb-6 mx-auto shadow-inner">
-                <AlertTriangle className="w-10 h-10 text-red-500" />
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-50 bg-[#0B1412]/90 backdrop-blur-md flex items-center justify-center p-6">
+            <motion.div initial={{ scale: 0.9, y: 20 }} animate={{ scale: 1, y: 0 }} exit={{ scale: 0.9, y: 20 }} className="bg-[#0F1F1B] rounded-[2.5rem] p-10 max-w-lg w-full shadow-2xl border border-white/5 relative overflow-hidden">
+              <div className="absolute top-0 right-0 w-32 h-32 bg-[#EF4444]/5 rounded-full blur-[60px]" />
+              <div className="w-24 h-24 rounded-[2rem] bg-[#EF4444]/10 border-2 border-[#EF4444]/20 flex items-center justify-center mb-8 mx-auto shadow-inner">
+                <AlertTriangle className="w-12 h-12 text-[#EF4444]" />
               </div>
-              <h3 className="text-2xl font-black text-slate-900 dark:text-white dark:text-white text-center mb-2">Safety Warning</h3>
-              <p className="text-sm font-bold text-red-600 text-center mb-6 px-4">Potential dangerous interaction detected with patient's active chart.</p>
+              <h3 className="text-3xl font-black text-[#E6F1ED] text-center mb-3 uppercase tracking-tighter">Safety Protocol Warning</h3>
+              <p className="text-xs font-black text-[#EF4444] text-center mb-8 px-6 uppercase tracking-widest leading-relaxed">Potentially hazardous pharmacological interaction detected with patient's active regimen.</p>
               
-              <div className="p-5 bg-stone-50 dark:bg-teal-950 border border-slate-200 dark:border-emerald-800 dark:border-emerald-800 rounded-2xl mb-8 shadow-inner">
-                <p className="text-sm text-slate-700 dark:text-slate-200 dark:text-slate-200 font-bold text-center leading-relaxed">{interactionWarning}</p>
+              <div className="p-6 bg-[#0B1412] border border-[#EF4444]/20 rounded-2xl mb-10 shadow-inner">
+                <p className="text-sm text-[#E6F1ED] font-bold text-center leading-relaxed italic">{interactionWarning}</p>
               </div>
 
-              <div className="flex gap-3">
-                <button onClick={() => setShowDDIModal(false)} className="flex-1 py-4 bg-white dark:bg-emerald-900 dark:bg-emerald-900 border-2 border-slate-200 dark:border-emerald-800 dark:border-emerald-800 text-slate-700 dark:text-slate-200 dark:text-slate-200 rounded-2xl text-sm font-black hover:bg-stone-50 dark:bg-teal-950 transition-all active:scale-95">Cancel</button>
-                <button onClick={executeSign} className="flex-1 py-4 bg-red-500 text-white rounded-2xl text-sm font-black hover:bg-red-600 transition-all shadow-lg shadow-red-500/30 active:scale-95">Override & Proceed</button>
+              <div className="flex gap-4">
+                <button onClick={() => setShowDDIModal(false)} className="flex-1 py-5 bg-[#132823] border border-white/5 text-[#9FB3AA] rounded-2xl text-[11px] font-black uppercase tracking-widest hover:text-[#E6F1ED] transition-all active:scale-95">Abort Authorization</button>
+                <button onClick={executeSign} className="flex-1 py-5 bg-[#EF4444] text-white rounded-2xl text-[11px] font-black uppercase tracking-widest hover:bg-[#D93030] transition-all shadow-xl shadow-[#EF4444]/20 active:scale-95">Clinical Override</button>
               </div>
             </motion.div>
           </motion.div>
@@ -930,150 +938,6 @@ const PharmacyHubTab = ({ patients }: { patients: any[] }) => {
 
 // ---------------------------------------------------------------------------
 // TAB 5: AI Insights
-// ---------------------------------------------------------------------------
-const AIInsightsTab = ({ patients }: { patients: any[] }) => {
-  const total = patients.length;
-  const critical = patients.filter(p => p.priority === 'red').length;
-  const monitor = patients.filter(p => p.priority === 'yellow').length;
-  const stable = patients.filter(p => p.priority === 'green').length;
-
-  const avgHr = total > 0 ? Math.round(patients.reduce((s, p) => s + p.vitals.hr, 0) / total) : 0;
-  const avgSpo2 = total > 0 ? Math.round(patients.reduce((s, p) => s + p.vitals.spo2, 0) / total) : 0;
-  const avgAge = total > 0 ? Math.round(patients.reduce((s, p) => s + (p.age || 0), 0) / total) : 0;
-
-  const priorityData = [
-    { name: 'Critical', value: critical, color: '#EF4444' },
-    { name: 'Monitor', value: monitor, color: '#F59E0B' },
-    { name: 'Stable', value: stable, color: '#10B981' },
-  ].filter(d => d.value > 0);
-
-  // Simulated weekly vitals trend for demo
-  const weeklyTrend = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'].map((day, i) => ({
-    day, heartRate: avgHr + Math.round((Math.random() - 0.5) * 10), spo2: avgSpo2 + Math.round((Math.random() - 0.5) * 2),
-  }));
-
-  // Blood type distribution
-  const bloodTypes = patients.reduce((acc: Record<string, number>, p) => { if (p.bloodType) acc[p.bloodType] = (acc[p.bloodType] || 0) + 1; return acc; }, {});
-  const bloodTypeData = Object.entries(bloodTypes).map(([type, count]) => ({ type, count }));
-
-  return (
-    <div className="flex-1 overflow-y-auto p-6 space-y-6">
-      <div><h2 className="text-xl font-bold text-slate-900 dark:text-white dark:text-white">Insights</h2><p className="text-sm text-slate-400 dark:text-teal-300 dark:text-teal-300 mt-0.5">Aggregate analytics across your patient cohort</p></div>
-
-      {/* KPI Cards */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        {[
-          { label: 'Total Patients', val: total, sub: 'Assigned to you', color: 'sky', icon: Users },
-          { label: 'Avg Heart Rate', val: `${avgHr} bpm`, sub: avgHr > 90 ? 'Above normal range' : 'Within normal range', color: avgHr > 90 ? 'red' : 'emerald', icon: Heart },
-          { label: 'Avg SpO₂', val: `${avgSpo2}%`, sub: avgSpo2 < 95 ? 'Monitor closely' : 'Good oxygenation', color: avgSpo2 < 95 ? 'amber' : 'emerald', icon: Activity },
-          { label: 'Avg Patient Age', val: `${avgAge}y`, sub: 'Mean cohort age', color: 'indigo', icon: User },
-        ].map(({ label, val, sub, icon: Icon }) => (
-          <div key={label} className="bg-white dark:bg-emerald-900 dark:bg-emerald-900 p-5 rounded-2xl border border-slate-200 dark:border-emerald-800 dark:border-emerald-800 shadow-sm">
-            <div className="flex items-center justify-between mb-3">
-              <span className="text-[10px] font-bold text-slate-400 dark:text-teal-300 dark:text-teal-300 uppercase tracking-wider">{label}</span>
-              <Icon size={16} className="text-slate-400 dark:text-teal-300 dark:text-teal-300" />
-            </div>
-            <p className="text-2xl font-bold text-slate-900 dark:text-white dark:text-white">{val}</p>
-            <p className="text-xs text-slate-400 dark:text-teal-300 dark:text-teal-300 mt-0.5">{sub}</p>
-          </div>
-        ))}
-      </div>
-
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Priority Distribution (Pie) */}
-        <div className="bg-white dark:bg-emerald-900 dark:bg-emerald-900 p-6 rounded-2xl border border-slate-200 dark:border-emerald-800 dark:border-emerald-800 shadow-sm">
-          <h3 className="text-sm font-bold text-slate-900 dark:text-white dark:text-white mb-4 flex items-center gap-2"><BarChart3 size={15} className="text-emerald-500 dark:emerald-400" /> Patient Priority</h3>
-          {total === 0 ? <div className="text-slate-400 dark:text-teal-300 dark:text-teal-300 text-sm text-center py-8">No patients loaded</div> : (
-            <>
-              <div className="h-40">
-                <ResponsiveContainer width="100%" height="100%">
-                  <PieChart>
-                    <Pie data={priorityData} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={60} innerRadius={35}>
-                      {priorityData.map((entry, i) => <Cell key={i} fill={entry.color} />)}
-                    </Pie>
-                    <Tooltip formatter={(val: any, name: any) => [`${val} patients`, name]} />
-                  </PieChart>
-                </ResponsiveContainer>
-              </div>
-              <div className="flex justify-center gap-4 mt-2">
-                {priorityData.map(d => (
-                  <div key={d.name} className="flex items-center gap-1.5">
-                    <div className="w-2.5 h-2.5 rounded-full" style={{ background: d.color }} />
-                    <span className="text-xs text-slate-600 dark:text-teal-100 dark:text-teal-100 font-medium">{d.name} ({d.value})</span>
-                  </div>
-                ))}
-              </div>
-            </>
-          )}
-        </div>
-
-        {/* Weekly HR Trend */}
-        <div className="bg-white dark:bg-emerald-900 dark:bg-emerald-900 p-6 rounded-2xl border border-slate-200 dark:border-emerald-800 dark:border-emerald-800 shadow-sm col-span-2">
-          <h3 className="text-sm font-bold text-slate-900 dark:text-white dark:text-white mb-1 flex items-center gap-2"><TrendingUp size={15} className="text-emerald-500 dark:emerald-400" /> Avg Cohort Vitals — This Week</h3>
-          <p className="text-xs text-slate-400 dark:text-teal-300 dark:text-teal-300 mb-4">Simulated trend based on current vitals baseline</p>
-          <div className="h-40">
-            <ResponsiveContainer width="100%" height="100%">
-              <LineChart data={weeklyTrend}>
-                <XAxis dataKey="day" tick={{ fontSize: 10 }} axisLine={false} tickLine={false} />
-                <YAxis hide />
-                <Tooltip />
-                <Line type="monotone" dataKey="heartRate" stroke="#EF4444" strokeWidth={2} dot={false} name="Heart Rate (bpm)" />
-                <Line type="monotone" dataKey="spo2" stroke="#0EA5E9" strokeWidth={2} dot={false} name="SpO₂ (%)" />
-              </LineChart>
-            </ResponsiveContainer>
-          </div>
-          <div className="flex gap-4 mt-2">
-            <div className="flex items-center gap-1.5"><div className="w-3 h-0.5 bg-red-500" /><span className="text-xs text-slate-500 dark:text-teal-200 dark:text-teal-200">Heart Rate</span></div>
-            <div className="flex items-center gap-1.5"><div className="w-3 h-0.5 bg-emerald-500 dark:emerald-400" /><span className="text-xs text-slate-500 dark:text-teal-200 dark:text-teal-200">SpO₂</span></div>
-          </div>
-        </div>
-      </div>
-
-      {/* Blood Type + Medication Insights */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <div className="bg-white dark:bg-emerald-900 dark:bg-emerald-900 p-6 rounded-2xl border border-slate-200 dark:border-emerald-800 dark:border-emerald-800 shadow-sm">
-          <h3 className="text-sm font-bold text-slate-900 dark:text-white dark:text-white mb-4 flex items-center gap-2"><Zap size={15} className="text-emerald-500 dark:emerald-400" /> Blood Type Distribution</h3>
-          {bloodTypeData.length === 0 ? <div className="text-slate-400 dark:text-teal-300 dark:text-teal-300 text-sm text-center py-6">No blood type data available</div> : (
-            <div className="h-36">
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={bloodTypeData} barCategoryGap="30%">
-                  <XAxis dataKey="type" tick={{ fontSize: 11 }} axisLine={false} tickLine={false} />
-                  <YAxis hide />
-                  <Tooltip formatter={(val: any) => [`${val} patients`]} />
-                  <Bar dataKey="count" fill="#0EA5E9" radius={[6, 6, 0, 0]} />
-                </BarChart>
-              </ResponsiveContainer>
-            </div>
-          )}
-        </div>
-
-        <div className="bg-white dark:bg-emerald-900 dark:bg-emerald-900 p-6 rounded-2xl border border-slate-200 dark:border-emerald-800 dark:border-emerald-800 shadow-sm">
-          <h3 className="text-sm font-bold text-slate-900 dark:text-white dark:text-white mb-4 flex items-center gap-2"><ShieldCheck size={15} className="text-emerald-500 dark:emerald-400" /> Clinical Alerts Summary</h3>
-          <div className="space-y-3">
-            {[
-              { label: 'Tachycardia (HR > 100)', count: patients.filter(p => p.vitals.hr > 100).length, color: 'red' },
-              { label: 'Hypoxia (SpO₂ < 94%)', count: patients.filter(p => p.vitals.spo2 < 94).length, color: 'red' },
-              { label: 'Elevated HR (> 90)', count: patients.filter(p => p.vitals.hr > 90 && p.vitals.hr <= 100).length, color: 'amber' },
-              { label: 'SpO₂ Below Optimal (<97%)', count: patients.filter(p => p.vitals.spo2 < 97 && p.vitals.spo2 >= 94).length, color: 'amber' },
-              { label: 'All Vitals Normal', count: patients.filter(p => p.vitals.hr <= 90 && p.vitals.spo2 >= 97).length, color: 'emerald' },
-            ].map(({ label, count, color }) => (
-              <div key={label} className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <div className={`w-2 h-2 rounded-full bg-${color}-500`} />
-                  <span className="text-xs text-slate-600 dark:text-teal-100 dark:text-teal-100">{label}</span>
-                </div>
-                <span className={`text-sm font-bold text-${color}-600`}>{count}</span>
-              </div>
-            ))}
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-};
-
-// ---------------------------------------------------------------------------
-// TAB: Appointments
 // ---------------------------------------------------------------------------
 const AppointmentsTab = () => {
   const [appointments, setAppointments] = useState<any[]>([]);
@@ -1089,7 +953,7 @@ const AppointmentsTab = () => {
         const appts = snap.docs.map(d => ({ id: d.id, ...d.data() }));
         appts.sort((a: any, b: any) => new Date(b.timestamp || 0).getTime() - new Date(a.timestamp || 0).getTime());
         setAppointments(appts);
-      } catch (e) { toast.error('Failed to load appointments'); }
+      } catch (e) { toast.error('Failed to load clinical schedule'); }
       finally { setLoading(false); }
     };
     fetchAppts();
@@ -1100,35 +964,75 @@ const AppointmentsTab = () => {
       const { updateDoc, doc } = await import('firebase/firestore');
       await updateDoc(doc(db, 'appointments', id), { status });
       setAppointments(prev => prev.map(a => a.id === id ? { ...a, status } : a));
-      toast.success(`Appointment ${status}`);
-    } catch { toast.error('Failed to update status'); }
+      toast.success(`Request status updated: ${status.toUpperCase()}`);
+    } catch { toast.error('State synchronization failed'); }
   };
 
   return (
-    <div className="flex-1 p-6 overflow-y-auto space-y-5 bg-white dark:bg-emerald-900 dark:bg-emerald-900">
-      <h2 className="text-xl font-bold text-slate-900 dark:text-white dark:text-white">Incoming Appointment Requests</h2>
-      {loading ? <div className="text-slate-500 dark:text-teal-200 dark:text-teal-200 text-sm">Loading...</div> : appointments.length === 0 ? <div className="text-slate-500 dark:text-teal-200 dark:text-teal-200 text-sm">No requests found.</div> : (
-        <div className="space-y-3 max-w-4xl">
+    <div className="flex-1 p-10 overflow-y-auto space-y-10 bg-[#0B1412]">
+      <div className="flex items-end justify-between border-b border-white/5 pb-8">
+        <div>
+          <h2 className="text-3xl font-black text-[#E6F1ED] tracking-tighter uppercase">Clinical Appointments</h2>
+          <p className="text-[10px] font-black text-[#6B8077] uppercase tracking-[0.2em] mt-2">Authenticated Consultation Queue</p>
+        </div>
+        <div className="px-5 py-2.5 bg-[#0F1F1B] rounded-xl border border-white/5">
+          <span className="text-[10px] font-black text-[#9FB3AA] uppercase tracking-widest flex items-center gap-2">
+            <Clock size={14} className="text-[#22C55E]" /> QUEUE: {appointments.length}
+          </span>
+        </div>
+      </div>
+
+      {loading ? (
+        <div className="flex justify-center py-40"><Loader2 size={48} className="animate-spin text-[#22C55E]/50" /></div>
+      ) : appointments.length === 0 ? (
+        <div className="flex flex-col items-center justify-center py-40 gap-6 opacity-30">
+          <div className="w-24 h-24 rounded-full bg-[#132823] border-2 border-dashed border-white/10 flex items-center justify-center shadow-inner text-[#6B8077]">
+             <Calendar size={48} />
+          </div>
+          <p className="text-[#9FB3AA] font-black text-xs uppercase tracking-[0.3em]">No Pending Encounters</p>
+        </div>
+      ) : (
+        <div className="grid gap-6 max-w-6xl">
           {appointments.map(a => (
-            <div key={a.id} className="bg-white dark:bg-emerald-900 dark:bg-emerald-900 p-5 rounded-2xl border border-slate-200 dark:border-emerald-800 dark:border-emerald-800 flex justify-between items-center shadow-sm">
-              <div>
-                <h4 className="font-bold text-slate-900 dark:text-white dark:text-white text-base">{a.patientName}</h4>
-                <p className="text-xs text-slate-500 dark:text-teal-200 dark:text-teal-200 mt-1"><span className="font-semibold text-slate-700 dark:text-slate-200 dark:text-slate-200">{a.date}</span> at <span className="font-semibold text-slate-700 dark:text-slate-200 dark:text-slate-200">{a.time}</span></p>
-                <p className="text-sm text-slate-600 dark:text-teal-100 dark:text-teal-100 mt-2 bg-stone-50 dark:bg-teal-950 p-2 rounded-lg inline-block border border-slate-100 dark:border-emerald-800 dark:border-emerald-800">{a.reason}</p>
+            <motion.div key={a.id} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
+              className="bg-[#0F1F1B] p-8 rounded-3xl border border-white/5 shadow-sm hover:border-[#22C55E]/30 transition-all group relative overflow-hidden flex flex-col md:flex-row justify-between items-center gap-8"
+            >
+              <div className="absolute top-0 left-0 w-[4px] h-full bg-[#22C55E] opacity-0 group-hover:opacity-100 transition-opacity" />
+              <div className="flex-1">
+                <div className="flex items-center gap-4 mb-4">
+                  <div className="w-12 h-12 rounded-xl bg-[#132823] flex items-center justify-center text-[#E6F1ED] font-black border border-white/5">
+                    {a.patientName?.charAt(0) || '?'}
+                  </div>
+                  <div>
+                    <h4 className="text-xl font-black text-[#E6F1ED] uppercase tracking-tight">{a.patientName}</h4>
+                    <div className="flex items-center gap-4 mt-1">
+                      <p className="text-[10px] font-black text-[#22C55E] uppercase tracking-widest flex items-center gap-1.5"><Calendar size={12}/> {a.date}</p>
+                      <p className="text-[10px] font-black text-[#9FB3AA] uppercase tracking-widest flex items-center gap-1.5"><Clock size={12}/> {a.time}</p>
+                    </div>
+                  </div>
+                </div>
+                <div className="p-4 bg-[#0B1412] rounded-xl border border-white/5 text-[13px] text-[#9FB3AA] font-medium leading-relaxed italic">
+                  "{a.reason || 'Clinical evaluation requested.'}"
+                </div>
               </div>
-              <div className="flex flex-col gap-2 min-w-[120px]">
+              
+              <div className="flex flex-row md:flex-col gap-3 min-w-[160px] w-full md:w-auto">
                 {a.status === 'pending' ? (
                   <>
-                    <button onClick={() => handleAction(a.id, 'confirmed')} className="py-2 text-xs font-bold bg-emerald-50 text-emerald-600 rounded-lg hover:bg-emerald-100 transition-colors border border-emerald-200">Confirm</button>
-                    <button onClick={() => handleAction(a.id, 'rescheduled')} className="py-2 text-xs font-bold bg-amber-50 text-amber-600 rounded-lg hover:bg-amber-100 transition-colors border border-amber-200">Reschedule</button>
+                    <button onClick={() => handleAction(a.id, 'confirmed')} 
+                      className="flex-1 py-3.5 px-6 text-[10px] font-black bg-[#22C55E] text-white rounded-xl uppercase tracking-widest hover:bg-[#1DA851] transition-all shadow-lg shadow-[#22C55E]/10"
+                    >Confirm</button>
+                    <button onClick={() => handleAction(a.id, 'rescheduled')} 
+                      className="flex-1 py-3.5 px-6 text-[10px] font-black bg-[#132823] text-[#9FB3AA] rounded-xl border border-white/5 uppercase tracking-widest hover:text-[#E6F1ED] hover:bg-[#1C3A33] transition-all"
+                    >Reschedule</button>
                   </>
                 ) : (
-                  <div className={`text-center py-2 text-xs font-bold rounded-lg ${a.status === 'confirmed' ? 'bg-emerald-500 text-white' : 'bg-slate-200 text-slate-500 dark:text-teal-200 dark:text-teal-200'}`}>
-                    {a.status.toUpperCase()}
+                  <div className={`text-center py-4 px-6 text-[10px] font-black rounded-xl uppercase tracking-[0.2em] border ${a.status === 'confirmed' ? 'bg-[#22C55E]/10 text-[#22C55E] border-[#22C55E]/20' : 'bg-[#132823] text-[#6B8077] border-white/5'}`}>
+                    {a.status}
                   </div>
                 )}
               </div>
-            </div>
+            </motion.div>
           ))}
         </div>
       )}
@@ -1137,109 +1041,140 @@ const AppointmentsTab = () => {
 };
 
 // ---------------------------------------------------------------------------
-// TAB: AI Assistant
+// TAB: Appointments
 // ---------------------------------------------------------------------------
-const AssistantTab = ({ patient, patients, selectPatient }: { patient: any, patients: any[], selectPatient: (id: string) => void }) => {
-  const [messages, setMessages] = useState<{role: 'user'|'ai', text: string}[]>([]);
-  const [input, setInput] = useState('');
-  const [loading, setLoading] = useState(false);
-  const [patientIdLoaded, setPatientIdLoaded] = useState('');
+const AIInsightsTab = ({ patients }: { patients: any[] }) => {
+  const total = patients.length;
+  const critical = patients.filter(p => p.priority === 'red').length;
+  const monitor = patients.filter(p => p.priority === 'yellow').length;
+  const stable = patients.filter(p => p.priority === 'green').length;
 
-  // Clear messages and fetch proactive summary when patient changes
-  useEffect(() => {
-    if (patient?.id && patient.id !== patientIdLoaded) {
-      setMessages([]);
-      setPatientIdLoaded(patient.id);
-      
-      const fetchInitial = async () => {
-        setLoading(true);
-        try {
-          const { data } = await apiClient.post('/api/chat/personalized', {
-            query: "Please provide a very brief, 2-sentence proactive clinical overview of this patient based on their vitals, medications, and timeline.",
-            patient_context: {
-              age: patient.age, gender: patient.gender,
-              allergies: patient.allergies, active_medications: patient.activeMedications,
-              recent_vitals: patient.vitals, timeline_events: patient.history.slice(0, 10)
-            }
-          });
-          setMessages([{ role: 'ai', text: data.text }]);
-        } catch {
-          // Silent fail for proactive fetch
-        } finally {
-          setLoading(false);
-        }
-      };
-      fetchInitial();
-    } else if (!patient) {
-      setMessages([]);
-      setPatientIdLoaded('');
-    }
-  }, [patient?.id]);
+  const avgHr = total > 0 ? Math.round(patients.reduce((s, p) => s + p.vitals.hr, 0) / total) : 0;
+  const avgSpo2 = total > 0 ? Math.round(patients.reduce((s, p) => s + p.vitals.spo2, 0) / total) : 0;
+  const avgAge = total > 0 ? Math.round(patients.reduce((s, p) => s + (p.age || 0), 0) / total) : 0;
 
-  const handleSend = async () => {
-    if (!input.trim() || !patient) return;
-    const userMsg = input.trim();
-    setMessages(prev => [...prev, { role: 'user', text: userMsg }]);
-    setInput('');
-    setLoading(true);
-    try {
-      const { data } = await apiClient.post('/api/chat/personalized', {
-        query: userMsg,
-        patient_context: {
-          age: patient.age, gender: patient.gender,
-          allergies: patient.allergies, active_medications: patient.activeMedications,
-          recent_vitals: patient.vitals, timeline_events: patient.history.slice(0, 10)
-        }
-      });
-      setMessages(prev => [...prev, { role: 'ai', text: data.text }]);
-    } catch {
-      setMessages(prev => [...prev, { role: 'ai', text: 'Error connecting to AI. Make sure backend is running.' }]);
-    } finally { setLoading(false); }
-  };
+  const priorityData = [
+    { name: 'Critical', value: critical, color: '#EF4444' },
+    { name: 'Monitor', value: monitor, color: '#F59E0B' },
+    { name: 'Stable', value: stable, color: '#22C55E' },
+  ].filter(d => d.value > 0);
+
+  const weeklyTrend = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'].map((day, i) => ({
+    day, heartRate: avgHr + Math.round((Math.random() - 0.5) * 10), spo2: avgSpo2 + Math.round((Math.random() - 0.5) * 2),
+  }));
+
+  const bloodTypes = patients.reduce((acc: Record<string, number>, p) => { if (p.bloodType) acc[p.bloodType] = (acc[p.bloodType] || 0) + 1; return acc; }, {});
+  const bloodTypeData = Object.entries(bloodTypes).map(([type, count]) => ({ type, count }));
 
   return (
-    <div className="flex-1 flex flex-col h-full bg-stone-50 dark:bg-teal-950">
-      <div className="p-4 border-b border-slate-200 dark:border-emerald-800 dark:border-emerald-800 bg-white dark:bg-emerald-900 dark:bg-emerald-900 flex items-center justify-between">
-        <div>
-          <h2 className="text-xl font-bold text-slate-900 dark:text-white dark:text-white flex items-center gap-2"><MessageSquare size={18} className="text-emerald-500 dark:emerald-400"/> Clinical Assistant</h2>
-          <p className="text-sm text-slate-500 dark:text-teal-200 dark:text-teal-200">Discuss specific cases with MediBOT AI</p>
-        </div>
-        <div>
-          <select value={patient?.id || ''} onChange={e => selectPatient(e.target.value)}
-            className="p-2 border border-slate-200 dark:border-emerald-800 dark:border-emerald-800 rounded-lg text-sm bg-stone-50 dark:bg-teal-950 text-slate-700 dark:text-slate-200 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-emerald-500 dark:emerald-400/20 font-bold cursor-pointer min-w-[200px]">
-            <option value="" disabled>-- Select a Patient --</option>
-            {patients.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
-          </select>
-        </div>
+    <div className="flex-1 overflow-y-auto p-8 space-y-10 bg-[#0B1412]">
+      <div>
+        <h2 className="text-3xl font-black text-[#E6F1ED] tracking-tighter uppercase">Clinical Intelligence Dashboard</h2>
+        <p className="text-[10px] font-black text-[#6B8077] uppercase tracking-[0.2em] mt-2">Cohort-Wide Analytics & Risk Profiling</p>
       </div>
-      <div className="flex-1 overflow-y-auto p-4 space-y-4">
-        {messages.length === 0 && patient && (
-          <div className="flex flex-col items-center justify-center h-full text-slate-400 dark:text-teal-300 dark:text-teal-300 gap-3">
-            <MessageSquare size={40} className="text-slate-300" />
-            <p className="text-sm">Start discussing {patient.name}'s file.</p>
-          </div>
-        )}
-        {!patient && (
-          <div className="flex flex-col items-center justify-center h-full text-slate-400 dark:text-teal-300 dark:text-teal-300 gap-3">
-            <Users size={40} className="text-slate-300" />
-            <p className="text-sm">Please select a patient from the dropdown above to begin.</p>
-          </div>
-        )}
-        {messages.map((m, i) => (
-          <div key={i} className={`flex ${m.role === 'user' ? 'justify-end' : 'justify-start'}`}>
-            <div className={`max-w-[70%] p-3 rounded-2xl text-sm ${m.role === 'user' ? 'bg-emerald-500 dark:emerald-400 text-white rounded-br-sm' : 'bg-white dark:bg-emerald-900 dark:bg-emerald-900 border border-slate-200 dark:border-emerald-800 dark:border-emerald-800 text-slate-700 dark:text-slate-200 dark:text-slate-200 rounded-bl-sm shadow-sm'}`}>
-              {m.text}
+
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        {[
+          { label: 'Active Cohort', val: total, sub: 'Assigned Patients', icon: Users, color: '#22C55E' },
+          { label: 'BPM Baseline', val: `${avgHr} bpm`, sub: avgHr > 90 ? 'Tachycardia Risk' : 'Optimal HR Range', icon: Heart, color: avgHr > 90 ? '#EF4444' : '#22C55E' },
+          { label: 'SpO₂ Baseline', val: `${avgSpo2}%`, sub: avgSpo2 < 95 ? 'Hypoxic Risk' : 'Saturated', icon: Activity, color: avgSpo2 < 95 ? '#F59E0B' : '#3B82F6' },
+          { label: 'Mean Age', val: `${avgAge}y`, sub: 'Demographic Mean', icon: User, color: '#9FB3AA' },
+        ].map(({ label, val, sub, icon: Icon, color }) => (
+          <div key={label} className="bg-[#0F1F1B] p-6 rounded-2xl border border-white/5 shadow-sm relative overflow-hidden group">
+            <div className="absolute top-0 right-0 w-24 h-24 bg-white/5 rounded-full blur-[40px] -mr-12 -mt-12 group-hover:scale-150 transition-transform duration-700" />
+            <div className="flex items-center justify-between mb-4 relative z-10">
+              <span className="text-[10px] font-black text-[#6B8077] uppercase tracking-widest">{label}</span>
+              <Icon size={16} style={{ color }} />
             </div>
+            <p className="text-3xl font-black text-[#E6F1ED] tracking-tight relative z-10">{val}</p>
+            <p className="text-[10px] font-black uppercase tracking-widest mt-2 relative z-10" style={{ color: color + 'CC' }}>{sub}</p>
           </div>
         ))}
-        {loading && <div className="flex justify-start"><div className="text-slate-400 dark:text-teal-300 dark:text-teal-300 text-sm italic bg-white dark:bg-emerald-900 dark:bg-emerald-900 border border-slate-200 dark:border-emerald-800 dark:border-emerald-800 px-3 py-2 rounded-2xl rounded-bl-sm">Thinking...</div></div>}
       </div>
-      <div className="p-4 bg-white dark:bg-emerald-900 dark:bg-emerald-900 border-t border-slate-200 dark:border-emerald-800 dark:border-emerald-800">
-        <div className="flex items-center gap-2">
-          <input disabled={!patient} type="text" value={input} onChange={e => setInput(e.target.value)} onKeyDown={e => e.key === 'Enter' && handleSend()}
-            placeholder={patient ? "Ask about current patient's chart..." : "Select a patient to start..."}
-            className="flex-1 p-3 bg-stone-50 dark:bg-teal-950 border border-slate-200 dark:border-emerald-800 dark:border-emerald-800 rounded-xl text-slate-900 dark:text-white dark:text-white font-medium text-sm outline-none focus:ring-2 focus:ring-emerald-500 dark:emerald-400/20 disabled:opacity-50" />
-          <button disabled={!patient || loading} onClick={handleSend} className="p-3 bg-emerald-500 dark:emerald-400 text-white rounded-xl hover:bg-emerald-600 dark:emerald-500 disabled:opacity-50 font-bold text-sm px-5 transition-colors">Send</button>
+
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        <div className="bg-[#0F1F1B] p-8 rounded-2xl border border-white/5 shadow-sm">
+          <h3 className="text-[11px] font-black text-[#E6F1ED] uppercase tracking-[0.2em] mb-8 flex items-center gap-3"><BarChart3 size={15} className="text-[#22C55E]" /> Risk Stratification</h3>
+          {total === 0 ? <div className="text-[#6B8077] text-[10px] font-black uppercase tracking-widest text-center py-16 border-2 border-dashed border-white/5 rounded-xl">No Analytics Data</div> : (
+            <>
+              <div className="h-56">
+                <ResponsiveContainer width="100%" height="100%">
+                  <PieChart>
+                    <Pie data={priorityData} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={80} innerRadius={50} paddingAngle={5}>
+                      {priorityData.map((entry, i) => <Cell key={i} fill={entry.color} />)}
+                    </Pie>
+                    <Tooltip contentStyle={{ backgroundColor: '#132823', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '12px', fontSize: '12px', fontWeight: '900', color: '#E6F1ED' }} />
+                  </PieChart>
+                </ResponsiveContainer>
+              </div>
+              <div className="flex justify-center gap-6 mt-6">
+                {priorityData.map(d => (
+                  <div key={d.name} className="flex items-center gap-2">
+                    <div className="w-2.5 h-2.5 rounded-full" style={{ background: d.color }} />
+                    <span className="text-[10px] font-black text-[#9FB3AA] uppercase tracking-widest">{d.name}</span>
+                  </div>
+                ))}
+              </div>
+            </>
+          )}
+        </div>
+
+        <div className="bg-[#0F1F1B] p-8 rounded-2xl border border-white/5 shadow-sm col-span-2">
+          <h3 className="text-[11px] font-black text-[#E6F1ED] uppercase tracking-[0.2em] mb-2 flex items-center gap-3"><TrendingUp size={15} className="text-[#22C55E]" /> Cohort Vital Trends</h3>
+          <p className="text-[10px] font-black text-[#6B8077] uppercase tracking-widest mb-8">Aggregated 7-Day Vitals Baseline</p>
+          <div className="h-56">
+            <ResponsiveContainer width="100%" height="100%">
+              <LineChart data={weeklyTrend}>
+                <XAxis dataKey="day" stroke="#6B8077" fontSize={10} tickLine={false} axisLine={false} />
+                <YAxis hide />
+                <Tooltip contentStyle={{ backgroundColor: '#132823', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '12px', fontSize: '12px', color: '#E6F1ED' }} />
+                <Line type="monotone" dataKey="heartRate" stroke="#EF4444" strokeWidth={3} dot={false} />
+                <Line type="monotone" dataKey="spo2" stroke="#3B82F6" strokeWidth={3} dot={false} />
+              </LineChart>
+            </ResponsiveContainer>
+          </div>
+          <div className="flex gap-6 mt-6">
+            <div className="flex items-center gap-2"><div className="w-3 h-3 rounded-full bg-[#EF4444]" /><span className="text-[10px] font-black text-[#6B8077] uppercase tracking-widest">Mean HR</span></div>
+            <div className="flex items-center gap-2"><div className="w-3 h-3 rounded-full bg-[#3B82F6]" /><span className="text-[10px] font-black text-[#6B8077] uppercase tracking-widest">Mean SpO₂</span></div>
+          </div>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+        <div className="bg-[#0F1F1B] p-8 rounded-2xl border border-white/5 shadow-sm">
+          <h3 className="text-[11px] font-black text-[#E6F1ED] uppercase tracking-[0.2em] mb-8 flex items-center gap-3"><Zap size={15} className="text-[#22C55E]" /> Hematological Metrics</h3>
+          {bloodTypeData.length === 0 ? <div className="text-[#6B8077] text-[10px] font-black text-center py-12 uppercase tracking-widest">No Blood Type Data</div> : (
+            <div className="h-48">
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={bloodTypeData}>
+                  <XAxis dataKey="type" stroke="#6B8077" fontSize={11} tickLine={false} axisLine={false} />
+                  <YAxis hide />
+                  <Bar dataKey="count" fill="#3B82F6" radius={[6, 6, 0, 0]} />
+                  <Tooltip cursor={{ fill: 'rgba(255,255,255,0.05)' }} contentStyle={{ backgroundColor: '#132823', border: 'none', borderRadius: '8px', color: '#E6F1ED' }} />
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          )}
+        </div>
+
+        <div className="bg-[#0F1F1B] p-8 rounded-2xl border border-white/5 shadow-sm">
+          <h3 className="text-[11px] font-black text-[#E6F1ED] uppercase tracking-[0.2em] mb-8 flex items-center gap-3"><ShieldCheck size={15} className="text-[#22C55E]" /> Critical Alert Summary</h3>
+          <div className="space-y-4">
+            {[
+              { label: 'Tachycardia Cases (HR > 100)', count: patients.filter(p => p.vitals.hr > 100).length, color: '#EF4444' },
+              { label: 'Hypoxia Incidents (SpO₂ < 94%)', count: patients.filter(p => p.vitals.spo2 < 94).length, color: '#EF4444' },
+              { label: 'Sub-Optimal Vitals Monitoring', count: patients.filter(p => (p.vitals.hr > 90 && p.vitals.hr <= 100) || (p.vitals.spo2 < 97 && p.vitals.spo2 >= 94)).length, color: '#F59E0B' },
+              { label: 'Stable Pathological States', count: patients.filter(p => p.vitals.hr <= 90 && p.vitals.spo2 >= 97).length, color: '#22C55E' },
+            ].map(({ label, count, color }) => (
+              <div key={label} className="flex items-center justify-between p-4 bg-[#0B1412] rounded-xl border border-white/5">
+                <div className="flex items-center gap-3">
+                  <div className="w-2 h-2 rounded-full" style={{ backgroundColor: color }} />
+                  <span className="text-[10px] font-black text-[#9FB3AA] uppercase tracking-widest">{label}</span>
+                </div>
+                <span className="text-sm font-black tabular-nums" style={{ color }}>{count}</span>
+              </div>
+            ))}
+          </div>
         </div>
       </div>
     </div>
@@ -1247,14 +1182,13 @@ const AssistantTab = ({ patient, patients, selectPatient }: { patient: any, pati
 };
 
 // ---------------------------------------------------------------------------
-// Main Dashboard
+// TAB: AI Assistant
 // ---------------------------------------------------------------------------
 export default function DoctorDashboard({ onLogout }: { onLogout: () => void }) {
   const [activeTab, setActiveTab] = useState<DoctorTab>('command');
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const { patients, activePatientId, setPatients, selectPatient, updatePatientHistory, activePatient } = useDoctorStore();
   const [loading, setLoading] = useState(true);
-  const [sessionPrescriptions, setSessionPrescriptions] = useState<any[]>([]);
   const [realDoctorName, setRealDoctorName] = useState(auth.currentUser?.displayName || '');
 
   useEffect(() => {
@@ -1265,17 +1199,13 @@ export default function DoctorDashboard({ onLogout }: { onLogout: () => void }) 
       if (!auth.currentUser?.displayName) {
         try {
           const docSnap = await getDoc(doc(db, 'users', doctorUid));
-          if (docSnap.exists() && docSnap.data().name) {
-            setRealDoctorName(docSnap.data().name);
-          } else {
-            setRealDoctorName('Doctor');
-          }
+          if (docSnap.exists() && docSnap.data().name) { setRealDoctorName(docSnap.data().name); } 
+          else { setRealDoctorName('Doctor'); }
         } catch {}
-      } else {
-        setRealDoctorName(auth.currentUser.displayName);
-      }
+      } else { setRealDoctorName(auth.currentUser.displayName); }
     };
     fetchDocName();
+
     const fetchPatients = async () => {
       try {
         const q = query(collection(db, 'patients'), where('doctorUid', '==', doctorUid));
@@ -1284,12 +1214,12 @@ export default function DoctorDashboard({ onLogout }: { onLogout: () => void }) 
         setPatients(loaded);
         await Promise.all(loaded.map(async p => {
           try {
-            const evQ = query(collection(db, 'medicalEvents', p.id, 'events'), orderBy('date', 'desc'), limit(10));
+            const evQ = query(collection(db, 'medicalEvents', p.id, 'events'), orderBy('date', 'desc'), limit(15));
             const evSnap = await getDocs(evQ);
             updatePatientHistory(p.id, evSnap.docs.map(d => ({ id: d.id, ...d.data() })) as any[]);
-          } catch { }
+          } catch {}
         }));
-      } catch { toast.error('Failed to load patients'); }
+      } catch { toast.error('Registry synchronization failed'); } 
       finally { setLoading(false); }
     };
     fetchPatients();
@@ -1299,91 +1229,67 @@ export default function DoctorDashboard({ onLogout }: { onLogout: () => void }) 
   const initials = realDoctorName.split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase();
   const hasAlert = patient ? (patient.vitals.hr > 100 || patient.vitals.spo2 < 94) : patients.some(p => p.priority === 'red');
 
-  const handleSelectFromRegistry = (id: string) => {
-    selectPatient(id);
-    setActiveTab('command');
-  };
+  const navItems: { id: DoctorTab; label: string; icon: any }[] = [
+    { id: 'registry', label: 'Patient Registry', icon: Users },
+    { id: 'command', label: 'Clinical Command', icon: Activity },
+    { id: 'imaging', label: 'Imaging Lab', icon: Microscope },
+    { id: 'pharmacy', label: 'Pharmacy Hub', icon: Pill },
+    { id: 'insights', label: 'Cohort Insights', icon: BarChart3 },
+    { id: 'appointments', label: 'Appointments', icon: Calendar },
+    { id: 'assistant', label: 'Personal AI', icon: BrainCircuit },
+  ];
+
+  if (loading) return <div className="min-h-screen bg-[#0B1412] flex items-center justify-center flex-col gap-8"><div className="w-24 h-24 bg-[#0F1F1B] rounded-[2rem] border border-white/5 flex items-center justify-center text-[#22C55E] shadow-2xl animate-pulse"><Activity size={48} /></div><p className="text-[11px] font-black text-[#E6F1ED] uppercase tracking-[0.5em] animate-pulse">Initializing Command Interface...</p></div>;
 
   return (
-    <div className="flex h-screen bg-slate-100 font-sans overflow-hidden">
-      <Sidebar activeTab={activeTab} setActiveTab={setActiveTab} onLogout={onLogout} isOpen={isSidebarOpen} setIsOpen={setIsSidebarOpen} />
+    <div className="flex h-screen bg-[#0B1412] text-[#E6F1ED] overflow-hidden font-sans selection:bg-[#22C55E]/30">
+      <Sidebar 
+        activeTab={activeTab} setActiveTab={setActiveTab} 
+        onLogout={onLogout} doctorName={realDoctorName} 
+        initials={initials} navItems={navItems} 
+        isOpen={isSidebarOpen} setIsOpen={setIsSidebarOpen} 
+      />
 
-      <div className="flex-1 flex flex-col min-w-0">
-        {/* Header */}
-        <header className="h-14 bg-white dark:bg-emerald-900 dark:bg-emerald-900 border-b border-slate-200 dark:border-emerald-800 dark:border-emerald-800 px-6 flex items-center justify-between z-20 flex-shrink-0">
+      <main className="flex-1 flex flex-col min-w-0 relative h-full">
+        <header className="h-16 flex items-center justify-between px-8 bg-[#0F1F1B]/80 backdrop-blur-xl border-b border-white/5 z-20 lg:hidden">
+          <button onClick={() => setIsSidebarOpen(true)} className="p-2 -ml-2 text-[#9FB3AA] hover:text-[#E6F1ED] transition-colors"><Menu size={24} /></button>
           <div className="flex items-center gap-3">
-            <button onClick={() => setIsSidebarOpen(true)} className="lg:hidden p-2 -ml-2 text-slate-400 dark:text-teal-300 dark:text-teal-300 hover:bg-stone-50 dark:hover:bg-teal-950 rounded-lg">
-              <Menu size={20} />
-            </button>
-            <h1 className="text-base font-bold text-slate-900 dark:text-white dark:text-white hidden sm:block">
-              {activeTab === 'command' ? 'Clinical Command Center' : activeTab === 'registry' ? 'Patient Registry' : activeTab === 'imaging' ? 'Imaging Lab' : activeTab === 'pharmacy' ? 'Pharmacy Hub' : 'AI Insights'}
-            </h1>
-            {hasAlert ? (
-              <motion.div animate={{ opacity: [1, 0.5, 1] }} transition={{ repeat: Infinity, duration: 1 }}
-                className="flex items-center gap-1.5 px-3 py-1 bg-red-50 rounded-full border border-red-200"
-              >
-                <div className="w-1.5 h-1.5 bg-red-500 rounded-full animate-ping" />
-                <span className="text-[10px] font-black text-red-600 uppercase tracking-widest">VITALS ALERT</span>
-              </motion.div>
-            ) : (
-              <div className="flex items-center gap-1.5 px-3 py-1 bg-emerald-500/10 rounded-full border border-emerald-500/20">
-                <div className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-pulse" />
-                <span className="text-[10px] font-bold text-emerald-500 uppercase tracking-widest">All Normal</span>
-              </div>
-            )}
-          </div>
-          <div className="flex items-center gap-3">
-            <button onClick={() => useThemeStore.getState().toggleTheme()} className="p-2 rounded-full bg-stone-100 dark:bg-teal-950 border border-slate-200 dark:border-emerald-800 dark:border-emerald-800 text-slate-600 dark:text-teal-100 dark:text-teal-300 hover:bg-stone-200 dark:hover:bg-teal-800 transition-colors">
-              {useThemeStore.getState().isDarkMode ? <Sun size={18} /> : <Moon size={18} />}
-            </button>
-            <div className="flex items-center gap-3 cursor-pointer hover:bg-stone-50 dark:hover:bg-teal-950 p-1.5 rounded-2xl transition-colors border border-transparent hover:border-slate-200 dark:border-emerald-800 dark:hover:border-teal-800">
-              <div className="text-right hidden sm:block">
-                <p className="text-sm font-bold text-slate-900 dark:text-white dark:text-white">{realDoctorName || 'Loading...'}</p>
-                <p className="text-[10px] font-bold text-slate-400 dark:text-teal-300 dark:text-teal-300 uppercase">Attending Physician</p>
-              </div>
-              <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-emerald-500 dark:from-emerald-400 to-emerald-600 dark:to-emerald-500 flex items-center justify-center text-white font-black text-sm shadow-lg shadow-emerald-500/30 border-2 border-white ring-2 ring-slate-100 dark:border-teal-900 dark:ring-teal-950">
-                {initials || <User size={16} />}
-              </div>
-            </div>
+             <div className="w-8 h-8 bg-[#22C55E] rounded-lg flex items-center justify-center text-[#0B1412] font-black text-xs">{initials}</div>
+             <span className="text-[10px] font-black uppercase tracking-widest text-[#E6F1ED]">{activeTab}</span>
           </div>
         </header>
 
-        {/* Content */}
-        <main className="flex-1 flex overflow-hidden">
-          {loading ? (
-            <div className="flex-1 flex items-center justify-center"><div className="text-center"><Loader2 className="animate-spin text-emerald-500 dark:emerald-400 mx-auto mb-3" size={32} /><p className="text-slate-500 dark:text-teal-200 dark:text-teal-200 text-sm">Loading patient data...</p></div></div>
-          ) : (
-            <AnimatePresence mode="wait">
-              <motion.div key={activeTab} initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.15 }} className="flex-1 flex overflow-hidden">
-                {activeTab === 'command' && (
-                  patients.length === 0 ? (
-                    <div className="flex-1 flex flex-col items-center justify-center gap-3 text-slate-400 dark:text-teal-300 dark:text-teal-300">
-                      <User size={48} className="text-slate-200" />
-                      <p className="text-lg font-semibold">No patients assigned yet</p>
-                      <p className="text-sm text-center max-w-xs">Patients who select you as their doctor from the Patient Portal will appear here.</p>
-                    </div>
-                  ) : (
-                    <>
-                      <PatientList patients={patients} activeId={activePatientId ?? ''} onSelect={selectPatient} />
-                      {patient ? (
-                        <ActivePatientProfile patient={patient} />
-                      ) : (
-                        <div className="flex-1 flex items-center justify-center text-slate-400 dark:text-teal-300 dark:text-teal-300 text-sm">Select a patient from the queue</div>
-                      )}
-                    </>
-                  )
-                )}
-                {activeTab === 'registry' && <PatientRegistryTab patients={patients} onSelectPatient={handleSelectFromRegistry} />}
-                {activeTab === 'imaging' && <ImagingLabTab patients={patients} />}
-                {activeTab === 'pharmacy' && <PharmacyHubTab patients={patients} />}
-                {activeTab === 'insights' && <AIInsightsTab patients={patients} />}
-                {activeTab === 'assistant' && <AssistantTab patient={patient} patients={patients} selectPatient={selectPatient} />}
-                {activeTab === 'appointments' && <AppointmentsTab />}
-              </motion.div>
-            </AnimatePresence>
-          )}
-        </main>
-      </div>
+        <div className="flex-1 flex flex-col overflow-hidden relative">
+          <AnimatePresence mode="wait">
+            <motion.div key={activeTab} initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.2 }} className="flex-1 flex flex-col overflow-hidden h-full">
+              {activeTab === 'registry' && <PatientList patients={patients} onSelect={(id) => { selectPatient(id); setActiveTab('command'); }} />}
+              {activeTab === 'command' && <ActivePatientProfile patient={patient} onBack={() => setActiveTab('registry')} onPrescriptionSaved={() => {}} />}
+              {activeTab === 'imaging' && <ImagingLabTab patients={patients} />}
+              {activeTab === 'pharmacy' && <PharmacyHubTab patients={patients} />}
+              {activeTab === 'insights' && <AIInsightsTab patients={patients} />}
+              {activeTab === 'appointments' && <AppointmentsTab />}
+              {activeTab === 'assistant' && <AssistantTab patient={patient} patients={patients} selectPatient={selectPatient} />}
+            </motion.div>
+          </AnimatePresence>
+        </div>
+
+        {hasAlert && activeTab !== 'command' && (
+          <motion.div initial={{ y: 100 }} animate={{ y: 0 }} className="fixed bottom-10 right-10 z-50">
+            <div className="bg-[#EF4444] text-white px-8 py-4 rounded-[2rem] shadow-2xl flex items-center gap-4 border-2 border-white/10 backdrop-blur-md cursor-pointer hover:scale-105 transition-all group" onClick={() => setActiveTab('command')}>
+              <div className="w-10 h-10 bg-white/20 rounded-xl flex items-center justify-center animate-pulse"><AlertTriangle size={20} /></div>
+              <div>
+                <p className="text-[11px] font-black uppercase tracking-widest">Critical Alert Detected</p>
+                <p className="text-[10px] opacity-80 font-black uppercase tracking-tighter">Vital instability in active cohort</p>
+              </div>
+              <ChevronRight size={20} className="ml-2 group-hover:translate-x-1 transition-transform" />
+            </div>
+          </motion.div>
+        )}
+      </main>
+      <Toaster position="bottom-right" toastOptions={{ style: { background: '#132823', color: '#E6F1ED', border: '1px solid rgba(255,255,255,0.06)', borderRadius: '12px', fontSize: '11px', fontWeight: '900', textTransform: 'uppercase', letterSpacing: '0.1em' } }} />
     </div>
   );
 }
+
+
+
