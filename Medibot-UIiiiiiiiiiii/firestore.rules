@@ -5,13 +5,22 @@ service cloud.firestore {
     // Users: read/write own doc only
     match /users/{uid} {
       allow read, write: if request.auth != null && request.auth.uid == uid;
+      // Allow doctors to be searched by patients
+      allow read: if request.auth != null && resource.data.role == 'doctor';
+    }
+
+    // Doctors: professional profiles
+    match /doctors/{uid} {
+      allow read: if request.auth != null;
+      allow write: if request.auth != null && request.auth.uid == uid;
     }
 
     // Patients: own full access; linked doctor gets read
     match /patients/{uid} {
       allow read, write: if request.auth != null && request.auth.uid == uid;
       allow read: if request.auth != null
-        && resource.data.doctorUid == request.auth.uid;
+        && (resource.data.doctorUid == request.auth.uid || 
+            (resource.data.linkedDoctors != null && resource.data.linkedDoctors.exists(d => d.uid == request.auth.uid)));
 
       match /{subcollection}/{docId} {
         allow read, write: if request.auth != null && request.auth.uid == uid;
@@ -20,21 +29,43 @@ service cloud.firestore {
       }
     }
 
-    // Diagnostics subcollection
+    // Top-level Collections
+    
+    match /appointments/{id} {
+      allow read, write: if request.auth != null && (
+        request.auth.uid == resource.data.patientId || 
+        request.auth.uid == resource.data.doctorId
+      );
+      allow create: if request.auth != null;
+    }
+
+    match /prescriptions/{id} {
+      allow read: if request.auth != null && (
+        request.auth.uid == resource.data.patientId || 
+        request.auth.uid == resource.data.doctorUid
+      );
+      allow create: if request.auth != null;
+    }
+
+    match /chatHistory/{uid}/messages/{msgId} {
+      allow read, write: if request.auth != null && request.auth.uid == uid;
+    }
+
+    // Diagnostics subcollection (legacy/specific paths)
     match /diagnostics/{uid}/results/{resultId} {
       allow read, write: if request.auth != null && request.auth.uid == uid;
       allow read: if request.auth != null
         && get(/databases/$(database)/documents/patients/$(uid)).data.doctorUid == request.auth.uid;
     }
 
-    // Prescriptions subcollection
+    // Prescriptions subcollection (legacy/specific paths)
     match /prescriptions/{uid}/meds/{medId} {
       allow read, write: if request.auth != null && request.auth.uid == uid;
       allow read: if request.auth != null
         && get(/databases/$(database)/documents/patients/$(uid)).data.doctorUid == request.auth.uid;
     }
 
-    // Medical events — doctor can also write (add events for their patient)
+    // Medical events
     match /medicalEvents/{uid}/events/{eventId} {
       allow read, write: if request.auth != null && request.auth.uid == uid;
       allow read, write: if request.auth != null

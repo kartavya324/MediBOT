@@ -180,6 +180,18 @@ const PatientList = ({ patients, activeId, onSelect, isMobileView }: { patients:
 // TAB 1: Active Patient Profile
 // ---------------------------------------------------------------------------
 const ActivePatientProfile = ({ patient, onBack }: { patient: any; onBack?: () => void }) => {
+  if (!patient) {
+    return (
+      <div className="flex-1 flex flex-col items-center justify-center bg-[#0B1412] text-[#9FB3AA] p-10 text-center">
+        <div className="w-24 h-24 rounded-full bg-[#132823] border-2 border-dashed border-white/10 flex items-center justify-center mb-6">
+          <User size={48} className="opacity-20" />
+        </div>
+        <h3 className="text-xl font-black text-[#E6F1ED] uppercase tracking-widest mb-2">No Active Chart</h3>
+        <p className="text-xs font-black uppercase tracking-[0.2em] max-w-xs opacity-60">Select a patient from the registry to view their clinical data and real-time vitals.</p>
+        <button onClick={onBack} className="mt-8 px-8 py-3 bg-[#132823] text-[#22C55E] rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-[#1C3A33] transition-all border border-white/5">Open Patient Registry</button>
+      </div>
+    );
+  }
   const isAlert = patient.vitals.hr > 100 || patient.vitals.spo2 < 94;
   const [aiSummary, setAiSummary] = useState<string | null>(null);
   const [summarizing, setSummarizing] = useState(false);
@@ -1041,7 +1053,7 @@ const AppointmentsTab = () => {
 };
 
 // ---------------------------------------------------------------------------
-// TAB: Appointments
+// TAB: AI Insights
 // ---------------------------------------------------------------------------
 const AIInsightsTab = ({ patients }: { patients: any[] }) => {
   const total = patients.length;
@@ -1182,7 +1194,7 @@ const AIInsightsTab = ({ patients }: { patients: any[] }) => {
 };
 
 // ---------------------------------------------------------------------------
-// TAB: AI Assistant
+// Main Dashboard
 // ---------------------------------------------------------------------------
 export default function DoctorDashboard({ onLogout }: { onLogout: () => void }) {
   const [activeTab, setActiveTab] = useState<DoctorTab>('command');
@@ -1262,8 +1274,8 @@ export default function DoctorDashboard({ onLogout }: { onLogout: () => void }) 
         <div className="flex-1 flex flex-col overflow-hidden relative">
           <AnimatePresence mode="wait">
             <motion.div key={activeTab} initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.2 }} className="flex-1 flex flex-col overflow-hidden h-full">
-              {activeTab === 'registry' && <PatientList patients={patients} onSelect={(id) => { selectPatient(id); setActiveTab('command'); }} />}
-              {activeTab === 'command' && <ActivePatientProfile patient={patient} onBack={() => setActiveTab('registry')} onPrescriptionSaved={() => {}} />}
+              {activeTab === 'registry' && <PatientRegistryTab patients={patients} onSelectPatient={(id) => { selectPatient(id); setActiveTab('command'); }} />}
+              {activeTab === 'command' && <ActivePatientProfile patient={patient} onBack={() => setActiveTab('registry')} />}
               {activeTab === 'imaging' && <ImagingLabTab patients={patients} />}
               {activeTab === 'pharmacy' && <PharmacyHubTab patients={patients} />}
               {activeTab === 'insights' && <AIInsightsTab patients={patients} />}
@@ -1286,7 +1298,6 @@ export default function DoctorDashboard({ onLogout }: { onLogout: () => void }) 
           </motion.div>
         )}
       </main>
-      <Toaster position="bottom-right" toastOptions={{ style: { background: '#132823', color: '#E6F1ED', border: '1px solid rgba(255,255,255,0.06)', borderRadius: '12px', fontSize: '11px', fontWeight: '900', textTransform: 'uppercase', letterSpacing: '0.1em' } }} />
     </div>
   );
 }
