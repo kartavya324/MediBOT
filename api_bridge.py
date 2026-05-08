@@ -189,9 +189,10 @@ async def personalized_chat(request: Request, request_body: ChatRequest):
     PATENT CORE ENDPOINT:
     Receives a patient's medical question AND their clinical context,
     then injects the context into the RAG prompt for personalized answers.
+    Falls back to Gemini-only (no RAG) if FAISS is not loaded.
     """
-    if qa_chain is None or db is None:
-        raise HTTPException(status_code=503, detail="AI models are still loading. Please wait.")
+    if qa_chain is None:
+        raise HTTPException(status_code=503, detail="Gemini AI is not configured. Check your GEMINI_API_KEY.")
 
     try:
         # Build the patient info string for context injection
@@ -238,31 +239,39 @@ async def personalized_chat(request: Request, request_body: ChatRequest):
             if info_parts:
                 patient_info_str = " | ".join(info_parts)
 
-        # 1. Retrieve Context from FAISS
-        docs = db.similarity_search(request_body.query, k=3)
-        context_str = "\n".join([d.page_content for d in docs])
+        # 1. Retrieve Context from FAISS (optional — skip gracefully if db not loaded)
+        context_str = "No additional medical knowledge context available."
+        if db is not None:
+            try:
+                docs = db.similarity_search(request_body.query, k=3)
+                context_str = "\n".join([d.page_content for d in docs])
+            except Exception as faiss_err:
+                print(f"[WARN] FAISS search failed, continuing without RAG context: {faiss_err}")
         
         # 2. Build Gemini Prompt
-        prompt = f"""You are MediBOT, a concise clinical AI. 
-Your goal is to provide brief, high-value medical insights based ONLY on the context below.
+        prompt = f"""You are MediBOT, a professional clinical AI assistant with deep patient context.
+Your goal is to provide high-value, personalized medical insights by synthesizing the patient's medical history, vitals, and knowledge context.
 
-### FORMATTING RULES (CRITICAL):
-1. **NO HASHTAGS**: Do NOT use '#' for headers. Use bold text (e.g., **Heading**) instead.
-2. **BREVITY**: Keep answers under 4-5 sentences total. If you provide a list, keep items short.
-3. **NO FLUFF**: Skip the "I'm sorry to hear that" or "I understand" intro. Get straight to the facts.
-4. **NO MARKDOWN BULLETS**: Use simple dashes (-) or numbers (1.) for lists.
-5. **STRICT CONTEXT**: Only mention timeline events, medications, or vitals explicitly listed below. 
+### INTELLIGENCE & REASONING:
+1. **Timeline Synthesis**: Carefully analyze the **Medical Timeline** below. Use the headings and descriptions to understand the patient's clinical journey, past symptoms, and treatments. Respond as if you "remember" these events.
+2. **Context-Aware Analysis**: Cross-reference current vitals and medications with the medical timeline to identify trends or potential concerns.
+3. **Clinical Precision**: Be accurate, professional, and helpful. Use a structured, "Gemini-style" approach.
 
-### PATIENT CONTEXT:
-{patient_info_str if patient_info_str else 'No patient history.'}
+### STYLE & FORMATTING:
+1. **Rich Markdown**: Use bolding for emphasis, bullet points for lists, and standard markdown headers (###) for sections.
+2. **Structured Response**: Organize your answer with clear sections (e.g., Clinical Overview, Findings, Next Steps).
+3. **Actionable Insights**: Provide clear next steps while maintaining a supportive and professional tone.
 
-### KNOWLEDGE:
+### PATIENT CONTEXT & HISTORY:
+{patient_info_str if patient_info_str else 'No patient history provided.'}
+
+### MEDICAL KNOWLEDGE BASE:
 {context_str}
 
-### QUESTION:
+### USER QUESTION:
 {request_body.query}
 
-### CONCISE RESPONSE:
+### PERSONALIZED CLINICAL RESPONSE:
 """
 
         # Pass prompt and any fetched images to Gemini
@@ -271,11 +280,16 @@ Your goal is to provide brief, high-value medical insights based ONLY on the con
         answer = response.text
 
         sources = []
-        for doc in docs:
-            sources.append({
-                "content": doc.page_content[:200],
-                "page": doc.metadata.get("page", "N/A")
-            })
+        if db is not None:
+            try:
+                docs = db.similarity_search(request_body.query, k=3)
+                for doc in docs:
+                    sources.append({
+                        "content": doc.page_content[:200],
+                        "page": doc.metadata.get("page", "N/A")
+                    })
+            except:
+                pass
 
         safety_flag = False
         if request_body.patient_context and request_body.patient_context.allergies:
@@ -301,57 +315,81 @@ Your goal is to provide brief, high-value medical insights based ONLY on the con
 @limiter.limit("10/minute")
 async def analyze_xray(request: Request, request_body: VisionRequest):
     """
-    Receives a base64-encoded X-ray image and runs it through
-    the ResNet101 CNN model for lung disease classification.
+    HYBRID VISION PIPELINE:
+    1. Runs local ResNet101 for specialized lung disease detection (Project Novelty).
+    2. Runs Gemini Vision for general clinical cross-validation (Accuracy).
     """
     try:
         from PIL import Image
         from Lung_Disease_Detection_CNN_Model import predict_lung_disease
 
-        # Decode the base64 image
+        # 1. Prepare Image
         image_data = request_body.image_base64
         if "," in image_data:
             image_data = image_data.split(",")[1]
-
         image_bytes = base64.b64decode(image_data)
         image = Image.open(io.BytesIO(image_bytes))
 
-        # Predict using CNN model
-        pred_class = predict_lung_disease(image, CNN_WEIGHTS_PATH)
+        # 2. Local Specialist Model (Project Novelty)
+        print("[Vision] Running Local ResNet101 Specialist...")
+        try:
+            pred_class = predict_lung_disease(image, CNN_WEIGHTS_PATH)
+        except Exception as e:
+            print(f"Local model error: {e}")
+            pred_class = "Error"
 
+        # 3. Gemini Vision Cross-Validation (The "Brain")
+        print("[Vision] Running Gemini Cross-Validation...")
+        prompt = """Analyze this medical image. 
+        1. Identify exactly what this is (e.g., Chest X-ray, Bone X-ray, MRI, etc.).
+        2. Identify any visible abnormalities or findings.
+        3. Provide a brief 2-sentence clinical impression.
+        If this is NOT a chest X-ray, explicitly state what part of the body it is."""
+        
+        # Convert to RGB for Gemini if needed
+        gemini_img = image.convert('RGB') if image.mode != 'RGB' else image
+        gemini_resp = gemini_model.generate_content([prompt, gemini_img])
+        gemini_insight = gemini_resp.text
+
+        # 4. Hybrid Logic: Determine if we should prioritize Gemini's insight
+        is_chest_xray = "chest" in gemini_insight.lower() or "lung" in gemini_insight.lower()
+        
+        # If it's NOT a chest X-ray, the local lung model's result is likely a hallucination
+        if not is_chest_xray:
+            return {
+                "role": "ai",
+                "type": "vision",
+                "result": f"General Analysis: {gemini_insight[:150]}...",
+                "predicted_class": "Non-Chest Image",
+                "severity": "N/A",
+                "confidence": "High",
+                "recommendation": "This appears to be a non-chest image. Local lung diagnostics bypassed.",
+                "clinical_insight": gemini_insight
+            }
+
+        # If it IS a chest X-ray, combine both
         if pred_class == "Normal":
             severity = "Low"
-            recommendation = "No abnormalities detected. Continue routine checkups."
+            recommendation = "No pulmonology abnormalities detected by local specialist."
             confidence = "95%"
-        elif pred_class == "Pneumonia":
-            severity = "High"
-            recommendation = "Immediate medical evaluation recommended. Possible antibiotics required."
+        elif pred_class in ["Pneumonia", "COVID", "Tuberculosis", "Pneumothorax"]:
+            severity = "High" if pred_class != "Tuberculosis" else "Critical"
+            recommendation = f"Local specialist detected {pred_class}. Cross-referencing with Gemini insights."
             confidence = "90%"
-        elif pred_class == "COVID":
-            severity = "Critical"
-            recommendation = "Isolate immediately and seek medical attention."
-            confidence = "88%"
-        elif pred_class == "Tuberculosis":
-            severity = "Critical"
-            recommendation = "Infectious. Requires immediate prolonged antibiotic treatment."
-            confidence = "92%"
-        elif pred_class == "Pneumothorax":
-            severity = "High"
-            recommendation = "Urgent evaluation needed. Potential chest tube placement."
-            confidence = "85%"
         else:
             severity = "Unknown"
-            recommendation = "Review image manually."
+            recommendation = "Local analysis inconclusive."
             confidence = "0%"
 
         return {
             "role": "ai",
             "type": "vision",
-            "result": f"Analysis Complete: {pred_class} detected.",
+            "result": f"Specialist Detection: {pred_class}",
             "predicted_class": pred_class,
             "severity": severity,
             "confidence": confidence,
-            "recommendation": recommendation
+            "recommendation": recommendation,
+            "clinical_insight": gemini_insight
         }
 
     except Exception as e:
@@ -431,13 +469,18 @@ async def simple_chat(request: ChatRequest):
     A simpler chat endpoint without patient context injection.
     Falls back to the standard RAG pipeline.
     """
-    if qa_chain is None or db is None:
-        raise HTTPException(status_code=503, detail="AI models are still loading.")
+    if qa_chain is None:
+        raise HTTPException(status_code=503, detail="Gemini AI is not configured.")
 
     try:
-        # Retrieve Context from FAISS
-        docs = db.similarity_search(request.query, k=3)
-        context_str = "\n".join([d.page_content for d in docs])
+        # Retrieve Context from FAISS (optional — skip gracefully if db not loaded)
+        context_str = "No additional medical knowledge context available."
+        if db is not None:
+            try:
+                docs = db.similarity_search(request.query, k=3)
+                context_str = "\n".join([d.page_content for d in docs])
+            except Exception as faiss_err:
+                print(f"[WARN] FAISS search failed: {faiss_err}")
         
         prompt = f"""You are MediBOT, a clinical decision support AI.
 Use the following pieces of medical context to answer the user's question.

@@ -64,8 +64,8 @@ const Sidebar = ({ activeTab, setActiveTab, onLogout, isOpen, setIsOpen }: {
       </AnimatePresence>
 
       <div className={`
-        fixed md:sticky top-0 left-0 z-50
-        w-64 glass-card border-r border-slate-200 dark:border-emerald-800 flex flex-col h-screen
+        fixed md:relative top-0 left-0 z-50
+        w-64 glass-card border-r border-slate-200 dark:border-emerald-800 flex flex-col h-full
         transition-transform duration-300 ease-in-out
         ${isOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'}
       `}>
@@ -81,7 +81,7 @@ const Sidebar = ({ activeTab, setActiveTab, onLogout, isOpen, setIsOpen }: {
           </button>
         </div>
 
-        <nav className="flex-1 p-4 space-y-1 mt-4">
+        <nav className="flex-1 p-4 space-y-1 mt-4 overflow-y-auto scrollbar-hide">
           {menuItems.map((item) => (
             <button
               key={item.id}
@@ -526,7 +526,7 @@ const MyDoctorCard = ({ uid }: { uid: string | null }) => {
                   return (
                     <button key={doctor.uid} onClick={() => addDoctor(doctor)} disabled={linking || isLinked}
                       className="w-full flex items-center gap-4 p-4 hover:bg-[#2A2E39] transition-colors text-left disabled:opacity-60">
-                      <div className="w-10 h-10 rounded-xl bg-emerald-500 dark:emerald-400/10 flex items-center justify-center flex-shrink-0">
+                      <div className="w-10 h-10 rounded-xl bg-emerald-500/10 dark:bg-emerald-400/10 flex items-center justify-center flex-shrink-0">
                         <User size={18} className="text-emerald-500 dark:emerald-400" />
                       </div>
                       <div className="flex-1">
@@ -578,7 +578,7 @@ const TYPE_ICON_MAP: Record<string, any> = {
 const TYPE_COLOR_MAP: Record<string, string> = {
   indigo: 'bg-indigo-500/10 text-indigo-400 ring-1 ring-indigo-500/20',
   red: 'bg-red-500/10 text-red-400 ring-1 ring-red-500/20',
-  sky: 'bg-emerald-500 dark:emerald-400/10 text-emerald-500 dark:emerald-400 ring-1 ring-emerald-500 dark:emerald-400/20',
+  sky: 'bg-emerald-500/10 dark:bg-emerald-400/10 text-emerald-500 dark:emerald-400 ring-1 ring-emerald-500 dark:emerald-400/20',
   pink: 'bg-pink-500/10 text-pink-400 ring-1 ring-pink-500/20',
   emerald: 'bg-emerald-500/10 text-emerald-400 ring-1 ring-emerald-500/20',
   purple: 'bg-purple-500/10 text-purple-400 ring-1 ring-purple-500/20',
@@ -661,7 +661,7 @@ const EventForm = ({ data, setData, files, setFiles, onSubmit, onCancel, title, 
           {files.length > 0 && (
             <div className="mt-2 flex flex-wrap gap-2">
               {files.map((f: File, i: number) => (
-                <span key={i} className="flex items-center gap-1 px-2.5 py-1 bg-emerald-500 dark:emerald-400/10 border border-emerald-500 dark:emerald-400/20 text-emerald-500 dark:emerald-400 rounded-full text-xs font-bold">
+                <span key={i} className="flex items-center gap-1 px-2.5 py-1 bg-emerald-500/10 dark:bg-emerald-400/10 border border-emerald-500 dark:emerald-400/20 text-emerald-500 dark:emerald-400 rounded-full text-xs font-bold">
                   <FileText size={10} /> {f.name.length > 22 ? f.name.slice(0, 22) + '…' : f.name}
                   <button onClick={() => setFiles(files.filter((_, j) => j !== i))} className="hover:text-red-400 ml-0.5"><X size={10} /></button>
                 </span>
@@ -794,7 +794,7 @@ const MedicalTimeline = ({ uid }: { uid: string | null }) => {
             <Download size={13} /> Export / Print
           </button>
           <button onClick={() => setShowAddEvent(true)}
-            className="flex items-center gap-2 px-4 py-2.5 bg-emerald-500 dark:emerald-400 text-slate-900 dark:text-slate-900 dark:text-white rounded-xl text-xs font-bold hover:bg-emerald-600 dark:emerald-500 transition-colors shadow-lg shadow-emerald-500 dark:emerald-400/20">
+            className="flex items-center gap-2 px-4 py-2.5 bg-emerald-500 dark:emerald-400 text-slate-900 dark:text-white rounded-xl text-xs font-bold hover:bg-emerald-600 dark:emerald-500 transition-colors shadow-sm">
             <Plus size={13} /> Add Event
           </button>
         </div>
@@ -911,7 +911,7 @@ const MedicalTimeline = ({ uid }: { uid: string | null }) => {
                   <div>
                     <div className="text-[10px] font-bold text-slate-600 dark:text-teal-300 uppercase mb-1.5">Provider</div>
                     <div className="flex items-center gap-2">
-                      <div className="w-7 h-7 bg-emerald-500 dark:emerald-400/10 rounded-lg flex items-center justify-center"><User size={12} className="text-emerald-500 dark:emerald-400" /></div>
+                      <div className="w-7 h-7 bg-emerald-500/10 dark:bg-emerald-400/10 rounded-lg flex items-center justify-center"><User size={12} className="text-emerald-500 dark:emerald-400" /></div>
                       <span className="text-xs font-bold text-slate-900 dark:text-slate-900 dark:text-white">{selectedEvent.doctor}</span>
                     </div>
                   </div>
@@ -934,7 +934,7 @@ const MedicalTimeline = ({ uid }: { uid: string | null }) => {
               </div>
               <div className="p-4 border-t border-slate-200 dark:border-emerald-800 flex gap-2">
                 <button onClick={() => { setEditingEvent({ ...selectedEvent }); setEditFiles([]); }}
-                  className="flex-1 py-2 bg-emerald-500 dark:emerald-400/10 text-emerald-500 dark:emerald-400 border border-emerald-500 dark:emerald-400/20 rounded-xl text-xs font-bold hover:bg-emerald-500 dark:emerald-400/20 flex items-center justify-center gap-1.5 transition-all">
+                  className="flex-1 py-2 bg-emerald-500/10 dark:bg-emerald-400/10 text-emerald-500 dark:emerald-400 border border-emerald-500 dark:emerald-400/20 rounded-xl text-xs font-bold hover:bg-emerald-500 dark:emerald-400/20 flex items-center justify-center gap-1.5 transition-all">
                   <Pencil size={12} /> Edit
                 </button>
                 <button onClick={() => handleDelete(selectedEvent.id)}
@@ -1084,7 +1084,7 @@ const AIDiagnosticLab = ({ uid }: { uid: string | null }) => {
             </div>
           )}
 
-          <div className="w-24 h-24 bg-stone-50 dark:bg-teal-950 rounded-3xl flex items-center justify-center mb-8 group-hover:scale-110 group-hover:bg-emerald-500 dark:emerald-400/10 transition-all border border-slate-200 dark:border-emerald-800 shadow-inner duration-500">
+          <div className="w-24 h-24 bg-stone-50 dark:bg-teal-950 rounded-3xl flex items-center justify-center mb-8 group-hover:scale-110 group-hover:bg-emerald-500/10 dark:bg-emerald-400/10 transition-all border border-slate-200 dark:border-emerald-800 shadow-inner duration-500">
             {mode === 'imaging' ? (
               <Microscope className="text-slate-600 dark:text-teal-300 w-10 h-10 group-hover:text-emerald-500 dark:emerald-400 transition-colors duration-500" />
             ) : (
@@ -1108,7 +1108,7 @@ const AIDiagnosticLab = ({ uid }: { uid: string | null }) => {
 
           <div className="p-6 border-b border-slate-200 dark:border-emerald-800 bg-stone-100 dark:bg-emerald-900/50 flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-emerald-500 dark:emerald-400/10 flex items-center justify-center border border-emerald-500 dark:emerald-400/20 shadow-inner">
+              <div className="w-10 h-10 rounded-xl bg-emerald-500/10 dark:bg-emerald-400/10 flex items-center justify-center border border-emerald-500 dark:emerald-400/20 shadow-inner">
                 <Activity className="w-5 h-5 text-emerald-500 dark:emerald-400" />
               </div>
               <div>
@@ -1195,7 +1195,7 @@ const AIDiagnosticLab = ({ uid }: { uid: string | null }) => {
                 <button
                   onClick={handleSaveToProfile}
                   disabled={saving || saved}
-                  className="flex-1 py-3 bg-emerald-500 dark:emerald-400 text-slate-900 dark:text-slate-900 dark:text-white rounded-xl text-sm font-bold hover:bg-emerald-600 dark:emerald-500 transition-all shadow-lg shadow-emerald-500 dark:emerald-400/20 flex items-center justify-center gap-2 disabled:opacity-60"
+                  className="flex-1 py-3 bg-emerald-500 dark:emerald-400 text-slate-900 dark:text-white rounded-xl text-sm font-bold hover:bg-emerald-600 dark:emerald-500 transition-all shadow-sm flex items-center justify-center gap-2 disabled:opacity-60"
                 >
                   {saving ? 'Saving...' : saved ? 'Saved ✓' : 'Save to Profile'}
                 </button>
@@ -1316,7 +1316,7 @@ const PrescriptionManager = ({ uid }: { uid: string | null }) => {
 
           <button
             onClick={() => setShowAddMed(true)}
-            className="flex items-center justify-center gap-2 px-5 py-3 bg-emerald-500 dark:emerald-400 text-slate-900 dark:text-slate-900 dark:text-white rounded-xl text-sm font-bold hover:bg-emerald-600 dark:emerald-500 transition-all shadow-lg shadow-emerald-500 dark:emerald-400/20 whitespace-nowrap"
+            className="flex items-center justify-center gap-2 px-5 py-3 bg-emerald-500 dark:emerald-400 text-slate-900 dark:text-white rounded-xl text-sm font-bold hover:bg-emerald-600 dark:emerald-500 transition-all shadow-sm whitespace-nowrap"
           >
             <Plus size={16} />
             Add New
@@ -1357,7 +1357,7 @@ const PrescriptionManager = ({ uid }: { uid: string | null }) => {
           {meds.filter(m => m.name.toLowerCase().includes(searchQuery.toLowerCase())).map((med, idx) => (
             <div key={idx} className="p-4 md:px-6 flex items-center gap-4 hover:bg-[#2A2E39]/30 transition-colors group cursor-pointer">
               <div className="w-1/3 sm:w-1/4 max-w-[250px] flex items-center gap-4">
-                <div className={`w-12 h-12 rounded-2xl flex items-center justify-center flex-shrink-0 ${med.status === 'Active' ? 'bg-emerald-500 dark:emerald-400/10 text-emerald-500 dark:emerald-400 ring-1 ring-emerald-500 dark:emerald-400/20' : 'bg-stone-50 dark:bg-teal-950 text-slate-600 dark:text-teal-300 border border-slate-200 dark:border-emerald-800'}`}>
+                <div className={`w-12 h-12 rounded-2xl flex items-center justify-center flex-shrink-0 ${med.status === 'Active' ? 'bg-emerald-500/10 dark:bg-emerald-400/10 text-emerald-500 dark:emerald-400 ring-1 ring-emerald-500 dark:emerald-400/20' : 'bg-stone-50 dark:bg-teal-950 text-slate-600 dark:text-teal-300 border border-slate-200 dark:border-emerald-800'}`}>
                   <Pill size={20} />
                 </div>
                 <div>
@@ -1379,12 +1379,12 @@ const PrescriptionManager = ({ uid }: { uid: string | null }) => {
 
               <div className="hidden sm:flex w-24 items-center gap-2">
                 <div className={`w-2 h-2 rounded-full ${med.status === 'Active' ? 'bg-emerald-500 drop-shadow-[0_0_5px_rgba(16,185,129,0.8)]' : 'bg-slate-500'}`}></div>
-                <span className={`text-xs font-bold ${med.status === 'Active' ? 'text-emerald-400' : 'text-slate-600 dark:text-teal-300 dark:text-teal-200'}`}>{med.status}</span>
+                <span className={`text-xs font-bold ${med.status === 'Active' ? 'text-emerald-400' : 'text-slate-600 dark:text-teal-300'}`}>{med.status}</span>
               </div>
 
               <div className="w-12 flex justify-center">
                 {med.qrCodeData ? (
-                  <button onClick={(e) => { e.stopPropagation(); setQrModal(med.qrCodeData); }} className="w-8 h-8 rounded-xl bg-emerald-500 dark:emerald-400/10 flex items-center justify-center border border-emerald-500 dark:emerald-400/20 text-emerald-500 dark:emerald-400 hover:bg-emerald-500 dark:emerald-400 hover:text-slate-900 dark:text-slate-900 dark:text-white transition-colors shadow-sm" title="View Pharmacy QR">
+                  <button onClick={(e) => { e.stopPropagation(); setQrModal(med.qrCodeData); }} className="w-8 h-8 rounded-xl bg-emerald-500/10 dark:bg-emerald-400/10 flex items-center justify-center border border-emerald-500/20 dark:border-emerald-400/20 text-emerald-500 dark:text-emerald-400 hover:bg-emerald-500 hover:text-white transition-all shadow-sm" title="View Pharmacy QR">
                     <QrCode size={16} />
                   </button>
                 ) : (
@@ -1465,17 +1465,20 @@ const PrescriptionManager = ({ uid }: { uid: string | null }) => {
             className="fixed inset-0 bg-slate-900/60 backdrop-blur-md z-50 flex items-center justify-center p-4"
           >
             <motion.div initial={{ scale: 0.9, y: 20 }} animate={{ scale: 1, y: 0 }} exit={{ scale: 0.9, y: 20 }}
-              className="bg-white p-8 rounded-[2rem] shadow-2xl max-w-sm w-full border border-slate-200"
+              className="bg-white dark:bg-emerald-950 p-8 rounded-[2rem] shadow-2xl max-w-sm w-full border border-slate-200 dark:border-emerald-800 overflow-hidden"
             >
-              <div className="flex items-center justify-between mb-4">
-                <h4 className="text-xl font-bold text-slate-900">Pharmacy QR</h4>
-                <button onClick={() => setQrModal(null)} className="text-slate-600 dark:text-teal-300 dark:text-teal-200 hover:text-slate-600 transition-colors"><X size={20} /></button>
+              <div className="flex items-center justify-between mb-6">
+                <div>
+                  <h4 className="text-xl font-bold text-slate-900 dark:text-white">Pharmacy QR</h4>
+                  <p className="text-[10px] text-slate-500 dark:text-emerald-400 font-bold uppercase tracking-widest mt-1">Digital Prescription Hub</p>
+                </div>
+                <button onClick={() => setQrModal(null)} className="p-2 text-slate-400 hover:text-slate-600 dark:hover:text-white transition-colors hover:bg-slate-100 dark:hover:bg-white/5 rounded-xl"><X size={20} /></button>
               </div>
-              <div className="flex justify-center p-6 bg-slate-50 rounded-2xl border border-slate-100 mb-4 shadow-inner">
-                <QRCodeSVG value={qrModal} size={180} level="M" />
+              <div className="flex justify-center p-8 bg-white rounded-[2rem] border border-slate-100 dark:border-emerald-500/20 mb-6 shadow-inner ring-4 ring-slate-50 dark:ring-emerald-400/5">
+                <QRCodeSVG value={qrModal} size={200} level="H" includeMargin={true} />
               </div>
-              <p className="text-xs text-slate-600 dark:text-teal-300 text-center font-medium">Show this digital prescription at any partnered pharmacy to instantly retrieve your medication details.</p>
-              <button onClick={() => setQrModal(null)} className="w-full mt-6 py-3 bg-emerald-500 dark:emerald-400 text-slate-900 dark:text-slate-900 dark:text-white rounded-xl text-sm font-bold hover:bg-emerald-600 dark:emerald-500 transition-all shadow-lg shadow-emerald-500 dark:emerald-400/20">Done</button>
+              <p className="text-[11px] text-slate-600 dark:text-emerald-400/70 text-center font-bold uppercase tracking-tight leading-relaxed">Present this code at any partnered pharmacy to retrieve clinical medication details instantly.</p>
+              <button onClick={() => setQrModal(null)} className="w-full mt-8 py-4 bg-emerald-500 dark:emerald-400 text-white dark:text-slate-900 rounded-2xl text-xs font-bold uppercase tracking-widest hover:opacity-90 transition-all shadow-sm">Done</button>
             </motion.div>
           </motion.div>
         )}
@@ -1485,7 +1488,7 @@ const PrescriptionManager = ({ uid }: { uid: string | null }) => {
   );
 };
 
-interface ChatMsg { role: 'user' | 'ai'; text: string; type: string; result?: string; confidence?: string; }
+interface ChatMsg { role: 'user' | 'ai'; text: string; type: string; result?: string; confidence?: string; isComplete?: boolean; }
 interface ChatSession { id: string; title: string; messages: ChatMsg[]; createdAt: string; }
 
 const WELCOME_MSG: ChatMsg = {
@@ -1501,16 +1504,24 @@ const TypingText = ({ text, onComplete }: { text: string; onComplete?: () => voi
   React.useEffect(() => {
     if (index < text.length) {
       const timer = setTimeout(() => {
-        setDisplayedText((prev) => prev + text[index]);
-        setIndex((prev) => prev + 1);
-      }, 10); // Speed of typing
+        // Type faster - multiple chars per tick for smoother streaming feel
+        const charCount = Math.min(3, text.length - index);
+        setDisplayedText((prev) => prev + text.substring(index, index + charCount));
+        setIndex((prev) => prev + charCount);
+      }, 10); 
       return () => clearTimeout(timer);
     } else if (onComplete) {
-      onComplete();
+      // Small delay before marking as complete to avoid state flickers
+      const timer = setTimeout(onComplete, 100);
+      return () => clearTimeout(timer);
     }
   }, [index, text, onComplete]);
 
-  return <>{displayedText}</>;
+  return (
+    <ReactMarkdown remarkPlugins={[remarkGfm]}>
+      {displayedText}
+    </ReactMarkdown>
+  );
 };
 
 const AIChat = ({ uid }: { uid: string | null }) => {
@@ -1545,6 +1556,19 @@ const AIChat = ({ uid }: { uid: string | null }) => {
   useEffect(() => {
     try { localStorage.setItem(storageKey, JSON.stringify(sessions)); } catch {}
   }, [sessions, storageKey]);
+
+  const markMsgComplete = (msgIdx: number) => {
+    setSessions(prev => prev.map(s => {
+      if (s.id !== activeId) return s;
+      const newMsgs = [...s.messages];
+      if (newMsgs[msgIdx] && !newMsgs[msgIdx].isComplete) {
+        newMsgs[msgIdx] = { ...newMsgs[msgIdx], isComplete: true };
+      } else {
+        return s;
+      }
+      return { ...s, messages: newMsgs };
+    }));
+  };
 
   const activeSession = sessions.find(s => s.id === activeId);
   const messages = activeSession?.messages || [];
@@ -1615,12 +1639,12 @@ const AIChat = ({ uid }: { uid: string | null }) => {
           // Replace the static welcome message with the dynamic one
           const newMsgs = [...s.messages];
           if (newMsgs[0]?.text === WELCOME_MSG.text) {
-             newMsgs[0] = { role: 'ai', text: data.text, type: data.type || 'text' };
+             newMsgs[0] = { role: 'ai', text: data.text, type: data.type || 'text', isComplete: false };
           }
           return { ...s, messages: newMsgs };
         }));
       } else {
-        addMsg({ role: 'ai', text: data.text, type: data.type || 'text' });
+        addMsg({ role: 'ai', text: data.text, type: data.type || 'text', isComplete: false });
         if (uid) saveChatMessage(uid, 'ai', data.text, data.type || 'text');
       }
     } catch {
@@ -1659,7 +1683,7 @@ const AIChat = ({ uid }: { uid: string | null }) => {
   const quickReplies = ['Analyze my recent X-ray', 'Check my meds for side effects', 'Explain my last blood report', 'Schedule a follow-up'];
 
   return (
-    <div className="flex bg-stone-50 dark:bg-teal-950" style={{ height: 'calc(100vh - 5rem)' }}>
+    <div className="flex bg-stone-50 dark:bg-teal-950 h-full overflow-hidden">
       {/* Sidebar backdrop (mobile) */}
       <AnimatePresence>
         {sidebarOpen && (
@@ -1682,7 +1706,7 @@ const AIChat = ({ uid }: { uid: string | null }) => {
               <button onClick={() => setSidebarOpen(false)} className="p-1.5 text-slate-600 dark:text-teal-300 hover:text-slate-900 dark:text-slate-900 dark:text-white hover:bg-white/5 rounded-lg transition-colors"><X size={16} /></button>
             </div>
             <div className="p-3">
-              <button onClick={newChat} className="w-full flex items-center gap-2 px-4 py-2.5 bg-emerald-500 dark:emerald-400/10 border border-emerald-500 dark:emerald-400/20 rounded-xl text-emerald-500 dark:emerald-400 text-sm font-bold hover:bg-emerald-500 dark:emerald-400/20 transition-all">
+              <button onClick={newChat} className="w-full flex items-center gap-2 px-4 py-2.5 bg-emerald-500/10 dark:bg-emerald-400/10 border border-emerald-500 dark:emerald-400/20 rounded-xl text-emerald-500 dark:emerald-400 text-sm font-bold hover:bg-emerald-500 dark:emerald-400/20 transition-all">
                 <PlusCircle size={15} /> New Chat
               </button>
             </div>
@@ -1690,7 +1714,7 @@ const AIChat = ({ uid }: { uid: string | null }) => {
               {sessions.map(s => (
                 <div key={s.id}
                   onClick={() => { setActiveId(s.id); setSidebarOpen(false); }}
-                  className={`flex items-center gap-2 p-3 rounded-xl cursor-pointer transition-all group ${s.id === activeId ? 'bg-emerald-500 dark:emerald-400/10 border border-emerald-500 dark:emerald-400/20' : 'hover:bg-white/5'}`}>
+                  className={`flex items-center gap-2 p-3 rounded-xl cursor-pointer transition-all group ${s.id === activeId ? 'bg-emerald-500/10 dark:bg-emerald-400/10 border border-emerald-500 dark:emerald-400/20' : 'hover:bg-white/5'}`}>
                   <MessageCircle size={13} className="text-slate-600 dark:text-teal-300 flex-shrink-0" />
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-medium text-slate-300 truncate">{s.title}</p>
@@ -1753,7 +1777,7 @@ const AIChat = ({ uid }: { uid: string | null }) => {
               <div className="flex flex-wrap justify-center gap-2">
                 {quickReplies.map((r, i) => (
                   <button key={i} onClick={() => handleSend(r)}
-                    className="px-4 py-2 bg-white dark:bg-emerald-900 border border-slate-300 dark:border-teal-700 rounded-full text-xs font-medium text-slate-300 hover:bg-emerald-500 dark:emerald-400/10 hover:border-emerald-500 dark:emerald-400/30 hover:text-emerald-500 dark:emerald-400 transition-all">
+                    className="px-4 py-2 bg-white dark:bg-emerald-900 border border-slate-300 dark:border-teal-700 rounded-full text-xs font-medium text-slate-600 dark:text-slate-300 hover:bg-emerald-500/10 dark:bg-emerald-400/10 hover:border-emerald-500 dark:emerald-400/30 hover:text-emerald-500 dark:emerald-400 transition-all">
                     {r}
                   </button>
                 ))}
@@ -1774,19 +1798,25 @@ const AIChat = ({ uid }: { uid: string | null }) => {
                   ) : msg.type === 'vision' || msg.type === 'image_analysis' ? (
                     <div className="bg-white dark:bg-emerald-900 border border-emerald-500 dark:emerald-400/20 rounded-3xl rounded-tl-sm p-5 shadow-xl">
                       <div className="flex items-center gap-3 mb-3">
-                        <div className="p-2 bg-emerald-500 dark:emerald-400/10 rounded-xl"><Microscope className="text-emerald-500 dark:emerald-400 w-4 h-4" /></div>
+                        <div className="p-2 bg-emerald-500/10 dark:bg-emerald-400/10 rounded-xl"><Microscope className="text-emerald-500 dark:emerald-400 w-4 h-4" /></div>
                         <div><h5 className="text-sm font-bold text-slate-900 dark:text-slate-900 dark:text-white">Visual Analysis Complete</h5><p className="text-xs text-slate-600 dark:text-teal-300 dark:text-teal-200">AI Medical Imaging</p></div>
                       </div>
-                      <p className="text-sm text-slate-300 leading-relaxed">
-                        {isLast && msg.role === 'ai' ? <TypingText text={msg.result || msg.text} /> : (msg.result || msg.text)}
-                      </p>
+                      <div className="text-sm text-slate-700 dark:text-slate-300 leading-relaxed">
+                        {!msg.isComplete && msg.role === 'ai' ? (
+                          <TypingText text={msg.result || msg.text} onComplete={() => markMsgComplete(idx)} />
+                        ) : (
+                          <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                            {msg.result || msg.text}
+                          </ReactMarkdown>
+                        )}
+                      </div>
                     </div>
                   ) : (
                     <div className={`px-5 py-4 rounded-3xl text-sm leading-relaxed shadow-md prose dark:prose-invert prose-p:my-1 prose-headings:my-2 prose-li:my-0.5 ${msg.role === 'user'
                       ? 'bg-emerald-500 dark:bg-emerald-400 text-white dark:text-slate-900 rounded-tr-sm'
-                      : 'bg-white dark:bg-emerald-900 border border-slate-200 dark:border-emerald-800 text-slate-300 rounded-tl-sm'}`}>
-                      {isLast && msg.role === 'ai' ? (
-                        <TypingText text={msg.text} />
+                      : 'bg-white dark:bg-emerald-900 border border-slate-200 dark:border-emerald-800 text-slate-700 dark:text-slate-300 rounded-tl-sm'}`}>
+                      {!msg.isComplete && msg.role === 'ai' ? (
+                        <TypingText text={msg.text} onComplete={() => markMsgComplete(idx)} />
                       ) : (
                         <ReactMarkdown remarkPlugins={[remarkGfm]}>
                           {msg.text}
@@ -1812,7 +1842,7 @@ const AIChat = ({ uid }: { uid: string | null }) => {
         <div className="px-4 sm:px-5 pb-4 pt-2 border-t border-slate-200 dark:border-emerald-800 bg-stone-100 dark:bg-emerald-900/60 backdrop-blur-xl flex-shrink-0">
           <div className="flex items-end gap-2 bg-white dark:bg-emerald-900 px-3 py-2 rounded-2xl border border-slate-300 dark:border-teal-700 focus-within:border-emerald-500 dark:emerald-400/50 focus-within:ring-1 focus-within:ring-emerald-500 dark:emerald-400/20 transition-all">
             <button onClick={() => fileInputRef.current?.click()}
-              className="p-2.5 text-slate-600 dark:text-teal-300 dark:text-teal-200 hover:text-emerald-500 dark:emerald-400 hover:bg-emerald-500 dark:emerald-400/10 rounded-xl transition-colors flex-shrink-0" title="Upload file for analysis">
+              className="p-2.5 text-slate-600 dark:text-teal-300 dark:text-teal-200 hover:text-emerald-500 dark:emerald-400 hover:bg-emerald-500/10 dark:bg-emerald-400/10 rounded-xl transition-colors flex-shrink-0" title="Upload file for analysis">
               <Paperclip size={17} />
             </button>
             <input ref={fileInputRef} type="file" className="hidden" accept="image/*,.pdf"
@@ -2006,7 +2036,7 @@ export default function PatientDashboard({ onLogout }: { onLogout: () => void })
   const { liveHr: hr, liveSpo2: spo2, liveSteps: steps } = useSimulatedVitals(savedHr, savedSpo2, savedSteps);
 
   return (
-    <div className="flex min-h-screen bg-stone-50 dark:bg-teal-950 text-slate-200 font-sans selection:bg-emerald-500 dark:emerald-400/30 font-sans selection:bg-sky-100 overflow-x-hidden">
+    <div className="flex h-screen bg-stone-50 dark:bg-teal-950 text-slate-200 font-sans selection:bg-emerald-500/30 overflow-hidden">
       <AnimatePresence>
         {!isOnline && (
           <motion.div
@@ -2028,7 +2058,7 @@ export default function PatientDashboard({ onLogout }: { onLogout: () => void })
         setIsOpen={setIsMenuOpen}
       />
 
-      <div className="flex-1 flex flex-col min-w-0">
+      <div className="flex-1 flex flex-col min-w-0 h-full overflow-hidden">
         <Header
           patientName={profile?.name || auth.currentUser?.displayName || 'Patient'}
           uid={uid}
@@ -2037,7 +2067,7 @@ export default function PatientDashboard({ onLogout }: { onLogout: () => void })
           onApptClick={() => setShowAppt(true)}
         />
 
-        <main className="flex-1 p-4 md:p-8 overflow-y-auto">
+        <main className={`flex-1 ${activeTab === 'chat' ? 'overflow-hidden' : 'p-4 md:p-8 overflow-y-auto'}`}>
           <AnimatePresence mode="wait">
             <motion.div
               key={activeTab}
@@ -2045,6 +2075,7 @@ export default function PatientDashboard({ onLogout }: { onLogout: () => void })
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -10 }}
               transition={{ duration: 0.2 }}
+              className={activeTab === 'chat' ? 'h-full' : ''}
             >
               {activeTab === 'overview' && <ErrorBoundary label="Health Overview"><HealthOverview heartRate={hr} spo2={spo2} steps={steps} uid={uid} /></ErrorBoundary>}
               {activeTab === 'timeline' && <ErrorBoundary label="Medical Timeline"><MedicalTimeline uid={uid} /></ErrorBoundary>}

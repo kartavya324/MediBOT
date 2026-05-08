@@ -14,12 +14,14 @@ import {
   LayoutDashboard, History, Microscope, Pill, LogOut, Heart,
   AlertTriangle, Layers, FileText, User, Clock, Upload, Sparkles, X,
   Users, FlaskConical, TrendingUp, CheckCircle, AlertCircle, ChevronRight,
-  BarChart3, Zap, Menu, MessageSquare, Calendar, Sun, Moon
+  BarChart3, Zap, Menu, MessageSquare, Calendar, Sun, Moon, Send,
+  Paperclip, ChevronDown, FilePlus
 } from 'lucide-react';
+
 import { checkInteractions } from '../utils/drugSafetyData';
 import { motion, AnimatePresence } from 'motion/react';
 import { LineChart, Line, ResponsiveContainer, YAxis, BarChart, Bar, XAxis, Tooltip, PieChart, Pie, Cell } from 'recharts';
-import { collection, query, where, getDocs, addDoc, serverTimestamp, orderBy, limit, getDoc, doc } from 'firebase/firestore';
+import { collection, query, where, getDocs, addDoc, setDoc, updateDoc, serverTimestamp, orderBy, limit, getDoc, doc } from 'firebase/firestore';
 import { db, auth } from '../lib/firebase';
 import { useDoctorStore, deriveDisplayFields } from '../store/useDoctorStore';
 import apiClient from '../lib/apiClient';
@@ -52,7 +54,7 @@ const Sparkline = ({ data, color }: { data: { value: number }[]; color: string }
 // ---------------------------------------------------------------------------
 // Sidebar
 // ---------------------------------------------------------------------------
-const Sidebar = ({ activeTab, setActiveTab, onLogout, doctorName, initials, navItems, isOpen, setIsOpen }: {
+const Sidebar = ({ activeTab, setActiveTab, onLogout, doctorName, initials, navItems, isOpen, setIsOpen, onShowProfile }: {
   activeTab: DoctorTab; 
   setActiveTab: (t: DoctorTab) => void; 
   onLogout: () => void; 
@@ -61,31 +63,36 @@ const Sidebar = ({ activeTab, setActiveTab, onLogout, doctorName, initials, navI
   navItems: { id: DoctorTab; label: string; icon: any }[];
   isOpen: boolean; 
   setIsOpen: (o: boolean) => void;
+  onShowProfile: () => void;
 }) => {
+  const { isDarkMode, toggleTheme } = useThemeStore();
   return (
     <>
       <AnimatePresence>
         {isOpen && (
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setIsOpen(false)}
-            className="fixed inset-0 bg-[#0B1412]/80 backdrop-blur-md z-40 lg:hidden" />
+            className="fixed inset-0 bg-slate-900/50 dark:bg-[#0B1412]/80 backdrop-blur-md z-40 lg:hidden" />
         )}
       </AnimatePresence>
-      <div className={`fixed lg:relative lg:translate-x-0 w-80 h-full bg-[#0F1F1B] border-r border-white/5 z-50 transition-all duration-500 flex flex-col shadow-2xl lg:shadow-none ${isOpen ? 'translate-x-0' : '-translate-x-full'}`}>
+      <div className={`fixed lg:relative lg:translate-x-0 w-80 h-full bg-white dark:bg-[#0F1F1B] border-r border-slate-200 dark:border-white/5 z-50 transition-all duration-500 flex flex-col shadow-2xl lg:shadow-none ${isOpen ? 'translate-x-0' : '-translate-x-full'}`}>
         <div className="p-8 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-[#22C55E] rounded-xl flex items-center justify-center text-[#0B1412] shadow-xl shadow-[#22C55E]/20"><ShieldCheck size={24} /></div>
-            <span className="text-xl font-black text-[#E6F1ED] tracking-tighter uppercase">Medi<span className="text-[#22C55E]">BOT</span></span>
+            <div className="w-10 h-10 bg-[#22C55E] rounded-xl flex items-center justify-center text-white shadow-xl shadow-[#22C55E]/20"><ShieldCheck size={24} /></div>
+            <span className="text-xl font-black text-slate-900 dark:text-[#E6F1ED] tracking-tighter uppercase">Medi<span className="text-[#22C55E]">BOT</span></span>
           </div>
-          <button onClick={() => setIsOpen(false)} className="lg:hidden p-2 text-[#6B8077] hover:text-[#E6F1ED] transition-colors"><X size={20}/></button>
+          <button onClick={() => setIsOpen(false)} className="lg:hidden p-2 text-slate-400 dark:text-[#6B8077] hover:text-slate-900 dark:hover:text-[#E6F1ED] transition-colors"><X size={20}/></button>
         </div>
 
         <div className="px-6 mb-8">
-           <div className="p-5 bg-[#132823] rounded-[2rem] border border-white/5 group hover:border-[#22C55E]/30 transition-all shadow-inner">
+           <div 
+             onClick={onShowProfile}
+             className="p-5 bg-stone-50 dark:bg-[#132823] rounded-[2rem] border border-slate-200 dark:border-white/5 group hover:border-[#22C55E]/30 transition-all shadow-inner cursor-pointer"
+           >
               <div className="flex items-center gap-4">
-                 <div className="w-12 h-12 rounded-2xl bg-[#22C55E] flex items-center justify-center text-[#0B1412] shadow-lg shadow-[#22C55E]/20 text-sm font-black">{initials}</div>
+                 <div className="w-12 h-12 rounded-2xl bg-[#22C55E] flex items-center justify-center text-white shadow-lg shadow-[#22C55E]/20 text-sm font-black group-hover:scale-105 transition-transform">{initials}</div>
                  <div className="min-w-0">
-                    <p className="text-[10px] font-black text-[#6B8077] uppercase tracking-widest mb-0.5">Practitioner</p>
-                    <p className="text-sm font-black text-[#E6F1ED] truncate uppercase tracking-tight">{doctorName || 'MD Doctor'}</p>
+                    <p className="text-[10px] font-black text-slate-400 dark:text-[#6B8077] uppercase tracking-widest mb-0.5">Practitioner</p>
+                    <p className="text-sm font-black text-slate-900 dark:text-[#E6F1ED] truncate uppercase tracking-tight">{doctorName || 'MD Doctor'}</p>
                  </div>
               </div>
            </div>
@@ -96,23 +103,23 @@ const Sidebar = ({ activeTab, setActiveTab, onLogout, doctorName, initials, navI
             <button key={item.id} onClick={() => { setActiveTab(item.id); setIsOpen(false); }}
               className={`w-full flex items-center gap-4 px-6 py-4 rounded-2xl text-[11px] font-black tracking-widest transition-all uppercase relative group ${
                 activeTab === item.id 
-                  ? 'bg-[#132823] text-[#22C55E] shadow-inner' 
-                  : 'text-[#6B8077] hover:bg-[#132823]/50 hover:text-[#9FB3AA]'
+                  ? 'bg-emerald-500/10 dark:bg-[#132823] text-[#22C55E] shadow-inner' 
+                  : 'text-slate-500 dark:text-[#6B8077] hover:bg-stone-100 dark:hover:bg-[#132823]/50 hover:text-slate-900 dark:hover:text-[#9FB3AA]'
               }`}
             >
               {activeTab === item.id && <motion.div layoutId="activeNav" className="absolute left-2 w-1.5 h-6 bg-[#22C55E] rounded-full" />}
-              <item.icon size={18} className={activeTab === item.id ? 'text-[#22C55E]' : 'text-[#6B8077] group-hover:text-[#9FB3AA]'} />
+              <item.icon size={18} className={activeTab === item.id ? 'text-[#22C55E]' : 'text-slate-400 dark:text-[#6B8077] group-hover:text-slate-900 dark:group-hover:text-[#9FB3AA]'} />
               <span>{item.label}</span>
             </button>
           ))}
         </nav>
 
-        <div className="p-6 border-t border-white/5 space-y-4">
-          <button onClick={() => useThemeStore.getState().toggleTheme()} className="w-full flex items-center justify-center gap-3 px-6 py-4 bg-[#132823] text-[#9FB3AA] rounded-2xl font-black text-[10px] uppercase tracking-[0.2em] hover:text-[#E6F1ED] transition-all border border-white/5">
-             {useThemeStore.getState().isDarkMode ? <><Sun size={16} /> Day Mode</> : <><Moon size={16} /> Night Mode</>}
+        <div className="p-6 border-t border-slate-200 dark:border-white/5 space-y-4">
+          <button onClick={toggleTheme} className="w-full flex items-center justify-center gap-3 px-6 py-4 bg-stone-50 dark:bg-[#132823] text-slate-500 dark:text-[#9FB3AA] rounded-2xl font-black text-[10px] uppercase tracking-[0.2em] hover:text-slate-900 dark:hover:text-[#E6F1ED] transition-all border border-slate-200 dark:border-white/5">
+             {isDarkMode ? <><Sun size={16} /> Day Mode</> : <><Moon size={16} /> Night Mode</>}
           </button>
-          <button onClick={onLogout} className="w-full flex items-center justify-center gap-3 px-6 py-4 text-[#EF4444] font-black tracking-[0.3em] hover:bg-[#EF4444]/10 rounded-2xl transition-all uppercase text-[10px]">
-            <LogOut size={16} /> System Offline
+          <button onClick={onLogout} className="w-full flex items-center justify-center gap-3 px-6 py-4 text-red-500 font-black tracking-[0.3em] hover:bg-red-500/10 rounded-2xl transition-all uppercase text-[10px]">
+            <LogOut size={16} /> Sign Out
           </button>
         </div>
       </div>
@@ -127,44 +134,44 @@ const PatientList = ({ patients, activeId, onSelect, isMobileView }: { patients:
   const [search, setSearch] = useState('');
   const filtered = patients.filter(p => p.name?.toLowerCase().includes(search.toLowerCase()));
   return (
-    <div className={`${isMobileView ? 'w-full' : 'w-72 hidden lg:flex'} border-r border-white/5 bg-[#0F1F1B] flex flex-col h-full flex-shrink-0 transition-all`}>
-      <div className="p-6 border-b border-white/5 bg-[#132823]/50">
-        <h3 className="text-[11px] font-black text-[#9FB3AA] uppercase tracking-widest mb-4 flex items-center justify-between">
+    <div className={`${isMobileView ? 'w-full' : 'w-72 hidden lg:flex'} border-r border-slate-200 dark:border-white/5 bg-white dark:bg-[#0F1F1B] flex flex-col h-full flex-shrink-0 transition-all`}>
+      <div className="p-6 border-b border-slate-200 dark:border-white/5 bg-stone-50 dark:bg-[#132823]/50">
+        <h3 className="text-[11px] font-black text-slate-500 dark:text-[#9FB3AA] uppercase tracking-widest mb-4 flex items-center justify-between">
           <span>Patient Queue</span>
-          <span className="bg-[#0B1412] px-2 py-0.5 rounded-md text-[10px] text-[#6B8077]">
+          <span className="bg-slate-200 dark:bg-[#0B1412] px-2 py-0.5 rounded-md text-[10px] text-slate-500 dark:text-[#6B8077]">
             {patients.length} Active
           </span>
         </h3>
         <div className="relative">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-[#6B8077]" size={14} />
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 dark:text-[#6B8077]" size={14} />
           <input type="text" placeholder="Filter patients..." value={search} onChange={e => setSearch(e.target.value)}
-            className="w-full pl-10 pr-4 py-3 bg-[#0B1412] border border-white/5 focus:border-[#22C55E]/50 rounded-xl text-sm text-[#E6F1ED] outline-none transition-all placeholder:text-[#6B8077]" />
+            className="w-full pl-10 pr-4 py-3 bg-white dark:bg-[#0B1412] border border-slate-200 dark:border-white/5 focus:border-[#22C55E]/50 rounded-xl text-sm text-slate-900 dark:text-[#E6F1ED] outline-none transition-all placeholder:text-slate-400 dark:placeholder-[#6B8077]" />
         </div>
       </div>
       <div className="flex-1 overflow-y-auto p-4 space-y-3">
         {filtered.length === 0 ? (
-          <div className="py-12 text-center text-[#6B8077] text-xs font-bold uppercase tracking-widest">No patients found</div>
+          <div className="py-12 text-center text-slate-400 dark:text-[#6B8077] text-xs font-bold uppercase tracking-widest">No patients found</div>
         ) : (
           filtered.map(p => (
             <button key={p.id} onClick={() => onSelect(p.id)}
               className={`w-full text-left p-5 rounded-xl transition-all border-2 ${
                 activeId === p.id 
-                  ? 'bg-[#132823] border-[#22C55E]/40 shadow-xl' 
-                  : 'bg-[#132823]/30 border-transparent hover:bg-[#132823]/60 hover:border-white/5 shadow-sm'
+                  ? 'bg-emerald-50 dark:bg-[#132823] border-[#22C55E]/40 shadow-xl' 
+                  : 'bg-stone-50/50 dark:bg-[#132823]/30 border-transparent hover:bg-stone-100 dark:hover:bg-[#132823]/60 hover:border-slate-200 dark:hover:border-white/5 shadow-sm'
               }`}
             >
               <div className="flex items-center justify-between mb-3">
                 <div className="flex items-center gap-3 min-w-0">
                   <div className={`w-2 h-2 rounded-full flex-shrink-0 ${p.priority === 'red' ? 'bg-[#EF4444] animate-pulse' : p.priority === 'yellow' ? 'bg-[#F59E0B]' : 'bg-[#22C55E]'}`} />
-                  <span className="font-bold text-[#E6F1ED] text-sm truncate uppercase tracking-tight">{p.name || 'Unnamed'}</span>
+                  <span className="font-bold text-slate-900 dark:text-[#E6F1ED] text-sm truncate uppercase tracking-tight">{p.name || 'Unnamed'}</span>
                 </div>
-                <span className="text-[9px] font-black text-[#6B8077] uppercase tabular-nums tracking-widest flex-shrink-0">#{p.id.slice(0,4)}</span>
+                <span className="text-[9px] font-black text-slate-400 dark:text-[#6B8077] uppercase tabular-nums tracking-widest flex-shrink-0">#{p.id.slice(0,4)}</span>
               </div>
               <div className="flex justify-between items-center">
                 <span className={`text-[9px] font-black px-2 py-0.5 rounded-md uppercase tracking-widest ${
                   p.priority === 'red' ? 'bg-[#EF4444]/10 text-[#EF4444]' : p.priority === 'yellow' ? 'bg-[#F59E0B]/10 text-[#F59E0B]' : 'bg-[#22C55E]/10 text-[#22C55E]'
                 }`}>{p.status}</span>
-                <div className="flex items-center gap-1.5 text-[10px] font-black text-[#9FB3AA] uppercase">
+                <div className="flex items-center gap-1.5 text-[10px] font-black text-slate-500 dark:text-[#9FB3AA] uppercase">
                   <Heart size={10} className="text-[#EF4444]" /> {p.vitals.hr}
                 </div>
               </div>
@@ -182,13 +189,13 @@ const PatientList = ({ patients, activeId, onSelect, isMobileView }: { patients:
 const ActivePatientProfile = ({ patient, onBack }: { patient: any; onBack?: () => void }) => {
   if (!patient) {
     return (
-      <div className="flex-1 flex flex-col items-center justify-center bg-[#0B1412] text-[#9FB3AA] p-10 text-center">
-        <div className="w-24 h-24 rounded-full bg-[#132823] border-2 border-dashed border-white/10 flex items-center justify-center mb-6">
+      <div className="flex-1 flex flex-col items-center justify-center bg-stone-50 dark:bg-[#0B1412] text-slate-500 dark:text-[#9FB3AA] p-10 text-center">
+        <div className="w-24 h-24 rounded-full bg-stone-100 dark:bg-[#132823] border-2 border-dashed border-slate-300 dark:border-white/10 flex items-center justify-center mb-6">
           <User size={48} className="opacity-20" />
         </div>
-        <h3 className="text-xl font-black text-[#E6F1ED] uppercase tracking-widest mb-2">No Active Chart</h3>
+        <h3 className="text-xl font-black text-slate-900 dark:text-[#E6F1ED] uppercase tracking-widest mb-2">No Active Chart</h3>
         <p className="text-xs font-black uppercase tracking-[0.2em] max-w-xs opacity-60">Select a patient from the registry to view their clinical data and real-time vitals.</p>
-        <button onClick={onBack} className="mt-8 px-8 py-3 bg-[#132823] text-[#22C55E] rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-[#1C3A33] transition-all border border-white/5">Open Patient Registry</button>
+        <button onClick={onBack} className="mt-8 px-8 py-3 bg-stone-100 dark:bg-[#132823] text-[#22C55E] rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-stone-200 dark:hover:bg-[#1C3A33] transition-all border border-slate-200 dark:border-white/5">Open Patient Registry</button>
       </div>
     );
   }
@@ -196,6 +203,35 @@ const ActivePatientProfile = ({ patient, onBack }: { patient: any; onBack?: () =
   const [aiSummary, setAiSummary] = useState<string | null>(null);
   const [summarizing, setSummarizing] = useState(false);
   const [selectedEvent, setSelectedEvent] = useState<string | null>(null);
+
+  // Google Fit Simulation Logic
+  const [isSyncingFit, setIsSyncingFit] = useState(false);
+  const [isFitSynced, setIsFitSynced] = useState(false);
+  const [liveVitals, setLiveVitals] = useState({ hr: patient.vitals.hr, spo2: patient.vitals.spo2 });
+
+  useEffect(() => {
+    let interval: any;
+    if (isFitSynced) {
+      interval = setInterval(() => {
+        setLiveVitals(prev => ({
+          hr: patient.vitals.hr + Math.floor(Math.random() * 5) - 2, // +/- 2 bpm
+          spo2: Math.min(100, Math.max(90, patient.vitals.spo2 + (Math.random() > 0.5 ? 1 : -1) * (Math.random() > 0.8 ? 1 : 0))) // occasional 1% change
+        }));
+      }, 2000);
+    } else {
+      setLiveVitals({ hr: patient.vitals.hr, spo2: patient.vitals.spo2 });
+    }
+    return () => clearInterval(interval);
+  }, [isFitSynced, patient.vitals]);
+
+  const handleFitSync = () => {
+    setIsSyncingFit(true);
+    setTimeout(() => {
+      setIsSyncingFit(false);
+      setIsFitSynced(true);
+      toast.success('Synced with Google Fit Hub');
+    }, 2500);
+  };
 
   const handleAiBrief = async () => {
     if (!patient.history.length) { toast.error('No timeline events to summarize.'); return; }
@@ -210,13 +246,13 @@ const ActivePatientProfile = ({ patient, onBack }: { patient: any; onBack?: () =
   };
 
   return (
-    <div className="flex-1 flex flex-col bg-[#0B1412] overflow-y-auto min-w-0 transition-all duration-300">
+    <div className="flex-1 flex flex-col bg-stone-50 dark:bg-[#0B1412] overflow-y-auto min-w-0 transition-all duration-300">
       <div className={`p-8 border-b transition-all duration-300 ${isAlert ? 'border-[#EF4444]/20 bg-[#EF4444]/5' : 'border-white/5'}`}>
         <div className="flex items-center gap-4 mb-8 lg:hidden">
-          <button onClick={onBack} className="p-2.5 -ml-2 text-[#9FB3AA] hover:bg-[#132823] rounded-xl transition-all">
+          <button onClick={onBack} className="p-2.5 -ml-2 text-slate-500 dark:text-[#9FB3AA] hover:bg-slate-200 dark:hover:bg-[#132823] rounded-xl transition-all">
             <X size={20} />
           </button>
-          <span className="text-[11px] font-black text-[#E6F1ED] uppercase tracking-[0.2em]">Patient Chart</span>
+          <span className="text-[11px] font-black text-slate-500 dark:text-[#E6F1ED] uppercase tracking-[0.2em]">Patient Chart</span>
         </div>
         
         {isAlert && (
@@ -226,7 +262,7 @@ const ActivePatientProfile = ({ patient, onBack }: { patient: any; onBack?: () =
             <div className="w-8 h-8 rounded-lg bg-[#EF4444]/20 flex items-center justify-center text-[#EF4444]"><AlertTriangle size={18} /></div>
             <div className="flex-1">
               <p className="text-[10px] font-black text-[#EF4444] uppercase tracking-widest">Critical Diagnostic Alert</p>
-              <p className="text-sm font-bold text-[#E6F1ED] tracking-tight">{patient.vitals.hr > 100 ? `Tachycardia Detected (HR ${patient.vitals.hr} bpm)` : `Hypoxia Detected (SpO₂ ${patient.vitals.spo2}%)`}</p>
+              <p className="text-sm font-bold text-slate-900 dark:text-[#E6F1ED] tracking-tight">{patient.vitals.hr > 100 ? `Tachycardia Detected (HR ${patient.vitals.hr} bpm)` : `Hypoxia Detected (SpO₂ ${patient.vitals.spo2}%)`}</p>
             </div>
             <div className="w-2 h-2 bg-[#EF4444] rounded-full animate-ping" />
           </motion.div>
@@ -234,33 +270,54 @@ const ActivePatientProfile = ({ patient, onBack }: { patient: any; onBack?: () =
 
         <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-8">
           <div className="flex items-center gap-6">
-            <div className={`w-20 h-20 rounded-2xl flex items-center justify-center shadow-2xl transition-all duration-500 ${isAlert ? 'bg-[#EF4444]/20 ring-4 ring-[#EF4444]/10' : 'bg-[#132823] ring-4 ring-white/5'}`}>
+            <div className={`w-20 h-20 rounded-2xl flex items-center justify-center shadow-2xl transition-all duration-500 ${isAlert ? 'bg-[#EF4444]/20 ring-4 ring-[#EF4444]/10' : 'bg-white dark:bg-[#132823] ring-4 ring-slate-200 dark:ring-white/5'}`}>
               <User size={36} className={isAlert ? 'text-[#EF4444]' : 'text-[#22C55E]'} />
             </div>
             <div>
               <div className="flex items-center gap-3 flex-wrap">
-                <h2 className="text-3xl font-black text-[#E6F1ED] tracking-tighter uppercase">{patient.name}</h2>
+                <h2 className="text-3xl font-black text-slate-900 dark:text-[#E6F1ED] tracking-tighter uppercase">{patient.name}</h2>
                 <div className="flex gap-2">
-                  <span className="px-3 py-1 bg-[#132823] border border-white/5 rounded-md text-[10px] font-black text-[#9FB3AA] uppercase tracking-widest">{patient.gender}, {patient.age}y</span>
+                  <span className="px-3 py-1 bg-white dark:bg-[#132823] border border-slate-200 dark:border-white/5 rounded-md text-[10px] font-black text-slate-500 dark:text-[#9FB3AA] uppercase tracking-widest">{patient.gender}, {patient.age}y</span>
                   <span className="px-3 py-1 bg-[#22C55E]/10 border border-[#22C55E]/20 rounded-md text-[10px] font-black text-[#22C55E] uppercase tracking-widest">{patient.bloodType}</span>
                 </div>
               </div>
-              <p className="text-[#6B8077] text-xs flex items-center gap-2 mt-2 font-black uppercase tracking-widest">
-                <ShieldCheck size={14} className="text-[#22C55E]" /> MediBOT ID: <span className="text-[#9FB3AA] tabular-nums tracking-widest">#{patient.id.slice(0,12)}</span>
+              <p className="text-slate-400 dark:text-[#6B8077] text-xs flex items-center gap-2 mt-2 font-black uppercase tracking-widest">
+                <ShieldCheck size={14} className="text-[#22C55E]" /> MediBOT ID: <span className="text-slate-500 dark:text-[#9FB3AA] tabular-nums tracking-widest">#{patient.id.slice(0,12)}</span>
               </p>
             </div>
           </div>
-          <button onClick={handleAiBrief} disabled={summarizing}
-            className="px-8 py-4 bg-[#22C55E] text-white text-xs font-black rounded-xl hover:bg-[#1DA851] transition-all disabled:opacity-50 shadow-xl shadow-[#22C55E]/10 active:scale-95 uppercase tracking-widest flex items-center justify-center gap-3"
-          >
-            {summarizing ? <Loader2 size={16} className="animate-spin" /> : <Sparkles size={16} />} GENERATE CLINICAL BRIEF
-          </button>
+          <div className="flex flex-wrap items-center gap-4">
+            <button 
+              onClick={isFitSynced ? () => setIsFitSynced(false) : handleFitSync}
+              disabled={isSyncingFit}
+              className={`px-6 py-4 rounded-xl text-[10px] font-black uppercase tracking-widest flex items-center gap-3 transition-all ${
+                isFitSynced 
+                  ? 'bg-blue-500/10 border border-blue-500/30 text-blue-400' 
+                  : 'bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 text-slate-500 dark:text-[#9FB3AA] hover:bg-slate-50 dark:hover:bg-white/10'
+              }`}
+            >
+              {isSyncingFit ? (
+                <Loader2 size={14} className="animate-spin" />
+              ) : (
+                <div className="w-4 h-4 bg-white rounded-full flex items-center justify-center overflow-hidden">
+                   <img src="https://www.gstatic.com/images/branding/product/2x/googleg_48dp.png" alt="Google" className="w-3 h-3" />
+                </div>
+              )}
+              {isSyncingFit ? 'Synchronizing...' : isFitSynced ? 'Synced with Google Fit' : 'Sync Google Fit'}
+            </button>
+
+            <button onClick={handleAiBrief} disabled={summarizing}
+              className="px-8 py-4 bg-[#22C55E] text-white text-xs font-black rounded-xl hover:bg-[#1DA851] transition-all disabled:opacity-50 shadow-xl shadow-[#22C55E]/10 active:scale-95 uppercase tracking-widest flex items-center justify-center gap-3"
+            >
+              {summarizing ? <Loader2 size={16} className="animate-spin" /> : <Sparkles size={16} />} GENERATE CLINICAL BRIEF
+            </button>
+          </div>
         </div>
 
         {(patient.allergies?.length > 0 || patient.activeMedications?.length > 0) && (
           <div className="mt-8 flex flex-wrap gap-3">
             {patient.allergies?.map((a: string, i: number) => <span key={i} className="px-3 py-1.5 bg-[#EF4444]/5 border border-[#EF4444]/20 text-[#EF4444] text-[10px] font-black rounded-lg uppercase tracking-widest flex items-center gap-2"><X size={12}/> Allergy: {a}</span>)}
-            {patient.activeMedications?.map((m: string, i: number) => <span key={i} className="px-3 py-1.5 bg-[#132823] border border-white/5 text-[#9FB3AA] text-[10px] font-black rounded-lg uppercase tracking-widest flex items-center gap-2"><Pill size={12}/> Medication: {m}</span>)}
+            {patient.activeMedications?.map((m: string, i: number) => <span key={i} className="px-3 py-1.5 bg-white dark:bg-[#132823] border border-slate-200 dark:border-white/5 text-slate-500 dark:text-[#9FB3AA] text-[10px] font-black rounded-lg uppercase tracking-widest flex items-center gap-2"><Pill size={12}/> Medication: {m}</span>)}
           </div>
         )}
       </div>
@@ -268,18 +325,40 @@ const ActivePatientProfile = ({ patient, onBack }: { patient: any; onBack?: () =
       <div className="p-8 space-y-10">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
           {[
-            { icon: Heart, label: 'Heart Rate', val: `${patient.vitals.hr} bpm`, data: patient.hrData, color: isAlert && patient.vitals.hr > 100 ? '#EF4444' : '#22C55E', alert: isAlert && patient.vitals.hr > 100 },
-            { icon: Activity, label: 'Oxygen Saturation', val: `${patient.vitals.spo2}%`, data: patient.spo2Data, color: isAlert && patient.vitals.spo2 < 94 ? '#EF4444' : '#3B82F6', alert: isAlert && patient.vitals.spo2 < 94 },
-          ].map(({ icon: Icon, label, val, data, color, alert }) => (
-            <div key={label} className={`p-6 rounded-2xl border-2 transition-all duration-500 ${alert ? 'bg-[#EF4444]/5 border-[#EF4444]/20 shadow-2xl' : 'bg-[#0F1F1B] border-white/5 shadow-sm'}`}>
+            { 
+              icon: Heart, 
+              label: 'Heart Rate', 
+              val: `${isFitSynced ? liveVitals.hr : patient.vitals.hr} bpm`, 
+              data: patient.hrData, 
+              color: isAlert && (isFitSynced ? liveVitals.hr : patient.vitals.hr) > 100 ? '#EF4444' : '#22C55E', 
+              alert: isAlert && (isFitSynced ? liveVitals.hr : patient.vitals.hr) > 100,
+              live: isFitSynced
+            },
+            { 
+              icon: Activity, 
+              label: 'Oxygen Saturation', 
+              val: `${isFitSynced ? liveVitals.spo2 : patient.vitals.spo2}%`, 
+              data: patient.spo2Data, 
+              color: isAlert && (isFitSynced ? liveVitals.spo2 : patient.vitals.spo2) < 94 ? '#EF4444' : '#3B82F6', 
+              alert: isAlert && (isFitSynced ? liveVitals.spo2 : patient.vitals.spo2) < 94,
+              live: isFitSynced
+            },
+          ].map(({ icon: Icon, label, val, data, color, alert, live }) => (
+            <div key={label} className={`p-6 rounded-2xl border-2 transition-all duration-500 relative overflow-hidden ${alert ? 'bg-[#EF4444]/5 border-[#EF4444]/20 shadow-2xl' : 'bg-white dark:bg-[#0F1F1B] border-slate-200 dark:border-white/5 shadow-sm'}`}>
+              {live && (
+                <div className="absolute top-4 right-6 flex items-center gap-2">
+                   <div className="w-1.5 h-1.5 bg-red-500 rounded-full animate-pulse" />
+                   <span className="text-[8px] font-black text-red-500 uppercase tracking-widest">Live Telemetry</span>
+                </div>
+              )}
               <div className="flex items-center justify-between mb-6">
                 <div className="flex items-center gap-3">
-                  <div className={`p-2.5 rounded-xl ${alert ? 'bg-[#EF4444]/20' : 'bg-[#132823] border border-white/5'}`}>
-                    <Icon size={18} className={alert ? 'text-[#EF4444]' : 'text-[#6B8077]'} />
+                  <div className={`p-2.5 rounded-xl ${alert ? 'bg-[#EF4444]/20' : 'bg-slate-50 dark:bg-[#132823] border border-slate-200 dark:border-white/5'}`}>
+                    <Icon size={18} className={alert ? 'text-[#EF4444]' : 'text-slate-400 dark:text-[#6B8077]'} />
                   </div>
-                  <span className="text-[11px] font-black text-[#9FB3AA] uppercase tracking-widest">{label}</span>
+                  <span className="text-[11px] font-black text-slate-500 dark:text-[#9FB3AA] uppercase tracking-widest">{label}</span>
                 </div>
-                <span className={`text-2xl font-black tabular-nums tracking-tight ${alert ? 'text-[#EF4444]' : 'text-[#E6F1ED]'}`}>{val}</span>
+                <span className={`text-2xl font-black tabular-nums tracking-tight ${alert ? 'text-[#EF4444]' : 'text-slate-900 dark:text-[#E6F1ED]'}`}>{val}</span>
               </div>
               <div className="h-16 w-full">
                 <ResponsiveContainer width="100%" height="100%">
@@ -293,15 +372,15 @@ const ActivePatientProfile = ({ patient, onBack }: { patient: any; onBack?: () =
           ))}
         </div>
 
-        <div className="bg-[#0F1F1B] p-8 rounded-2xl border border-white/5 shadow-inner relative overflow-hidden">
+        <div className="bg-white dark:bg-[#0F1F1B] p-8 rounded-2xl border border-slate-200 dark:border-white/5 shadow-inner relative overflow-hidden">
           <div className="absolute top-0 right-0 w-64 h-64 bg-[#22C55E]/5 rounded-full blur-[100px] -mr-32 -mt-32" />
-          <h4 className="text-[11px] font-black text-[#E6F1ED] uppercase tracking-[0.2em] mb-8 flex items-center gap-4 relative z-10">
+          <h4 className="text-[11px] font-black text-slate-900 dark:text-[#E6F1ED] uppercase tracking-[0.2em] mb-8 flex items-center gap-4 relative z-10">
             <div className="w-10 h-10 bg-[#22C55E] rounded-xl flex items-center justify-center text-white shadow-xl shadow-[#22C55E]/10"><History size={18} /></div>
             Clinical Timeline Analytics
           </h4>
           
           {patient.history.length === 0 ? (
-            <div className="text-center text-[#6B8077] text-xs py-16 font-black uppercase tracking-widest border-2 border-dashed border-white/5 rounded-2xl">No clinical history records</div>
+            <div className="text-center text-slate-400 dark:text-[#6B8077] text-xs py-16 font-black uppercase tracking-widest border-2 border-dashed border-slate-200 dark:border-white/5 rounded-2xl">No clinical history records</div>
           ) : (
             <div className="relative pl-10 space-y-8 before:absolute before:left-[19px] before:top-2 before:bottom-2 before:w-[2px] before:bg-white/5">
               {patient.history.map((ev: any, i: number) => {
@@ -314,24 +393,24 @@ const ActivePatientProfile = ({ patient, onBack }: { patient: any; onBack?: () =
                   <div onClick={() => setSelectedEvent(isSelected ? null : ev.id)} 
                     className={`p-6 rounded-xl border transition-all duration-300 cursor-pointer group ${
                       isSelected 
-                        ? 'bg-[#132823] border-[#22C55E]/40 shadow-2xl' 
-                        : 'bg-[#132823]/30 border-white/5 hover:bg-[#132823]/60'
+                        ? 'bg-emerald-50 dark:bg-[#132823] border-[#22C55E]/40 shadow-2xl' 
+                        : 'bg-stone-50/50 dark:bg-[#132823]/30 border-slate-200 dark:border-white/5 hover:bg-stone-100 dark:hover:bg-[#132823]/60'
                     }`}>
                     <div className="flex items-center justify-between mb-3">
-                      <span className="text-[10px] font-black text-[#6B8077] uppercase tracking-[0.2em] tabular-nums group-hover:text-[#9FB3AA] transition-colors">{ev.date}</span>
+                      <span className="text-[10px] font-black text-slate-400 dark:text-[#6B8077] uppercase tracking-[0.2em] tabular-nums group-hover:text-slate-500 dark:group-hover:text-[#9FB3AA] transition-colors">{ev.date}</span>
                       <span className={`text-[9px] font-black px-2 py-0.5 rounded-md uppercase tracking-widest ${
                         ev.type === 'surgery' ? 'bg-[#EF4444]/10 text-[#EF4444]' : ev.type === 'med' ? 'bg-[#F59E0B]/10 text-[#F59E0B]' : 'bg-[#22C55E]/10 text-[#22C55E]'
                       }`}>{ev.type}</span>
                     </div>
-                    <h5 className="font-bold text-[#E6F1ED] text-base tracking-tight uppercase">{ev.title}</h5>
-                    {ev.desc && <p className={`text-sm text-[#9FB3AA] mt-3 font-medium leading-relaxed ${isSelected ? '' : 'line-clamp-2'}`}>{ev.desc}</p>}
+                    <h5 className="font-bold text-slate-900 dark:text-[#E6F1ED] text-base tracking-tight uppercase">{ev.title}</h5>
+                    {ev.desc && <p className={`text-sm text-slate-500 dark:text-[#9FB3AA] mt-3 font-medium leading-relaxed ${isSelected ? '' : 'line-clamp-2'}`}>{ev.desc}</p>}
                     <AnimatePresence>
                     {isSelected && (
                       <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} className="mt-6 pt-6 border-t border-white/5 flex items-center justify-between gap-6 flex-wrap">
                         {ev.doctor && (
                           <div className="flex items-center gap-3">
-                            <div className="w-8 h-8 rounded-full bg-[#0B1412] border border-white/5 flex items-center justify-center text-[10px] font-black text-[#6B8077]">MD</div>
-                            <p className="text-[11px] font-black text-[#9FB3AA] uppercase tracking-widest">Attending: <span className="text-[#E6F1ED]">{ev.doctor}</span></p>
+                            <div className="w-8 h-8 rounded-full bg-slate-100 dark:bg-[#0B1412] border border-slate-200 dark:border-white/5 flex items-center justify-center text-[10px] font-black text-slate-500 dark:text-[#6B8077]">MD</div>
+                            <p className="text-[11px] font-black text-slate-500 dark:text-[#9FB3AA] uppercase tracking-widest">Attending: <span className="text-slate-900 dark:text-[#E6F1ED]">{ev.doctor}</span></p>
                           </div>
                         )}
                         {ev.fileUrl && (
@@ -356,15 +435,337 @@ const ActivePatientProfile = ({ patient, onBack }: { patient: any; onBack?: () =
 };
 
 
+// ---------------------------------------------------------------------------
+// DOCTOR AI ASSISTANT TAB — Full Chatbot
+// ---------------------------------------------------------------------------
+interface DoctorChatMsg { role: 'user' | 'ai'; text: string; }
+interface DoctorSession { id: string; title: string; messages: DoctorChatMsg[]; createdAt: string; }
+
+const DOCTOR_WELCOME: DoctorChatMsg = {
+  role: 'ai',
+  text: "Hello Doctor! I'm your MediBOT Clinical AI. I can help you with patient analysis, drug interactions, clinical guidelines, and medical literature. How can I assist you today?"
+};
+
 const AssistantTab = ({ patient, patients, selectPatient }: { patient: any; patients: any[]; selectPatient: (id: string) => void }) => {
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [isTyping, setIsTyping] = useState(false);
+  const [input, setInput] = useState('');
+  const [isPatientMenuOpen, setIsPatientMenuOpen] = useState(false);
+
+  const makeSession = (): DoctorSession => ({
+    id: `${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
+    title: 'New Chat',
+    messages: [DOCTOR_WELCOME],
+    createdAt: new Date().toISOString(),
+  });
+
+  const [sessions, setSessions] = useState<DoctorSession[]>(() => {
+    try {
+      const stored = localStorage.getItem('medibot_doctor_sessions');
+      if (stored) {
+        const p = JSON.parse(stored);
+        if (Array.isArray(p) && p.length > 0) {
+          return p.map(s => ({
+            id: s.id || `${Date.now()}_${Math.random()}`,
+            title: s.title || 'Chat',
+            messages: Array.isArray(s.messages) ? s.messages : [DOCTOR_WELCOME],
+            createdAt: s.createdAt || new Date().toISOString()
+          }));
+        }
+      }
+    } catch (e) {
+      console.error("Failed to load doctor sessions:", e);
+    }
+    return [makeSession()];
+  });
+  const [activeId, setActiveId] = useState(() => (sessions.length > 0 ? sessions[0].id : ''));
+
+  useEffect(() => {
+    try { localStorage.setItem('medibot_doctor_sessions', JSON.stringify(sessions)); } catch {}
+  }, [sessions]);
+
+  const activeSession = sessions.find(s => s.id === activeId) || sessions[0];
+  const messages = Array.isArray(activeSession?.messages) ? activeSession.messages : [];
+
+  const addMsg = (msg: DoctorChatMsg) => {
+    if (!activeId) return;
+    setSessions(prev => prev.map(s => {
+      if (s.id !== activeId) return s;
+      const currentMsgs = Array.isArray(s.messages) ? s.messages : [];
+      const newMsgs = [...currentMsgs, msg];
+      const title = (s.title === 'New Chat' || !s.title) && msg.role === 'user'
+        ? msg.text.slice(0, 36) + (msg.text.length > 36 ? '…' : '') : (s.title || 'Chat');
+      return { ...s, messages: newMsgs, title };
+    }));
+  };
+
+  const newChat = () => { const s = makeSession(); setSessions(prev => [s, ...prev]); setActiveId(s.id); setSidebarOpen(false); };
+
+  const deleteSession = (id: string) => {
+    setSessions(prev => {
+      const updated = prev.filter(s => s.id !== id);
+      if (id === activeId) {
+        if (!updated.length) { const fresh = makeSession(); setActiveId(fresh.id); return [fresh]; }
+        setActiveId(updated[0].id);
+      }
+      return updated;
+    });
+  };
+
+  const handleSend = async (text: string = input) => {
+    const t = text.trim(); if (!t) return;
+    addMsg({ role: 'user', text: t });
+    setInput('');
+    setIsTyping(true);
+    try {
+      const patientContext = patient ? {
+        name: patient.name, age: patient.age, gender: patient.gender,
+        blood_type: patient.bloodType, allergies: patient.allergies,
+        active_medications: patient.activeMedications,
+        recent_vitals: { heartRate: patient.vitals.hr, spo2: patient.vitals.spo2 },
+        timeline_events: patient.history?.slice(0, 5) || []
+      } : undefined;
+      const { data } = await apiClient.post('/api/chat/personalized', {
+        query: t,
+        patient_context: patientContext,
+        role: 'doctor'
+      });
+      addMsg({ role: 'ai', text: data.text || 'No response received.' });
+    } catch {
+      addMsg({ role: 'ai', text: 'I cannot connect to the AI engine right now. Please ensure the backend is running on port 8000.' });
+    } finally { setIsTyping(false); }
+  };
+
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    addMsg({ role: 'user', text: `📎 Attaching: ${file.name}` });
+    setIsTyping(true);
+
+    try {
+      const reader = new FileReader();
+      const b64 = await new Promise<string>((resolve) => {
+        reader.onloadend = () => resolve(reader.result as string);
+        reader.readAsDataURL(file);
+      });
+
+      // Determine endpoint based on file type or context
+      const endpoint = file.name.toLowerCase().includes('report') ? '/api/vision/extract_report' : '/api/vision/analyze_xray';
+      const { data } = await apiClient.post(endpoint, {
+        image_base64: b64,
+        patient_id: patient?.id || 'unknown'
+      });
+
+      if (data.result || data.text) {
+        addMsg({ role: 'ai', text: data.result || data.text });
+      } else {
+        addMsg({ role: 'ai', text: "I've analyzed the file. What would you like to know about it?" });
+      }
+    } catch (err) {
+      toast.error("Failed to process file");
+      addMsg({ role: 'ai', text: "Sorry, I couldn't process that file. Please make sure it's a clear image (JPG/PNG)." });
+    } finally {
+      setIsTyping(false);
+      if (fileInputRef.current) fileInputRef.current.value = '';
+    }
+  };
+
+  useEffect(() => { scrollRef.current && (scrollRef.current.scrollTop = scrollRef.current.scrollHeight); }, [messages, isTyping]);
+
+  const quickReplies = patient
+    ? [`Summarize ${patient.name}'s case`, `Check drug interactions for ${patient.name}`, `What vitals concern me about ${patient.name}?`, 'Suggest treatment options']
+    : ['Latest clinical guidelines for hypertension', 'Explain drug interaction risks', 'Common differential diagnoses for chest pain', 'Evidence-based treatment protocols'];
+
   return (
-    <div className="flex-1 flex flex-col items-center justify-center bg-[#0B1412] text-[#E6F1ED]">
-      <BrainCircuit size={64} className="text-[#22C55E] mb-6 animate-pulse" />
-      <h2 className="text-2xl font-black uppercase tracking-widest">AI Clinical Assistant</h2>
-      <p className="text-[#6B8077] font-black uppercase tracking-widest mt-4">Interface Initializing...</p>
+    <div className="flex flex-1 min-h-0 bg-stone-50 dark:bg-[#0B1412] text-slate-900 dark:text-[#E6F1ED]">
+      <input type="file" ref={fileInputRef} className="hidden" accept="image/*" onChange={handleFileUpload} />
+      
+      {/* Sidebar backdrop (mobile) */}
+      <AnimatePresence>
+        {sidebarOpen && (
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+            className="fixed inset-0 z-20 bg-black/60 md:hidden" onClick={() => setSidebarOpen(false)} />
+        )}
+      </AnimatePresence>
+
+      {/* Chat history sidebar */}
+      <AnimatePresence>
+        {sidebarOpen && (
+          <motion.div key="sidebar"
+            initial={{ x: -288 }} animate={{ x: 0 }} exit={{ x: -288 }}
+            transition={{ type: 'spring', damping: 26, stiffness: 300 }}
+            className="fixed md:relative z-30 w-72 h-full bg-stone-100 dark:bg-[#0F1F1B] border-r border-slate-200 dark:border-white/5 flex flex-col flex-shrink-0 shadow-2xl"
+          >
+            <div className="p-4 border-b border-slate-200 dark:border-white/5 flex items-center justify-between">
+              <span className="text-sm font-black text-slate-900 dark:text-[#E6F1ED] uppercase tracking-widest">Chat History</span>
+              <button onClick={() => setSidebarOpen(false)} className="p-1.5 text-slate-500 dark:text-[#6B8077] hover:text-slate-900 dark:hover:text-[#E6F1ED] hover:bg-black/5 rounded-lg transition-colors"><X size={16} /></button>
+            </div>
+            <div className="p-3">
+              <button onClick={newChat} className="w-full flex items-center gap-2 px-4 py-2.5 bg-[#22C55E]/10 border border-[#22C55E]/30 rounded-xl text-[#22C55E] text-sm font-black hover:bg-[#22C55E]/20 transition-all">
+                <MessageSquare size={15} /> New Chat
+              </button>
+            </div>
+            <div className="flex-1 overflow-y-auto px-3 pb-4 space-y-1">
+              {sessions.map(s => (
+                <div key={s.id}
+                  onClick={() => { setActiveId(s.id); setSidebarOpen(false); }}
+                  className={`flex items-center gap-2 p-3 rounded-xl cursor-pointer transition-all group ${s.id === activeId ? 'bg-[#22C55E]/10 border border-[#22C55E]/30' : 'hover:bg-black/5 dark:hover:bg-white/5'}`}>
+                  <MessageSquare size={13} className="text-slate-400 dark:text-[#6B8077] flex-shrink-0" />
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium text-slate-700 dark:text-[#9FB3AA] truncate">{s.title}</p>
+                    <p className="text-[10px] text-slate-400 dark:text-[#6B8077]">{new Date(s.createdAt).toLocaleDateString()}</p>
+                  </div>
+                  <button onClick={e => { e.stopPropagation(); deleteSession(s.id); }}
+                    className="p-1 opacity-0 group-hover:opacity-100 text-slate-400 hover:text-red-400 hover:bg-red-500/10 rounded transition-all">
+                    <X size={11} />
+                  </button>
+                </div>
+              ))}
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Main chat area */}
+      <div className="flex-1 flex flex-col min-w-0 min-h-0">
+        {/* Header */}
+        <div className="px-4 py-3 border-b border-slate-200 dark:border-white/5 bg-stone-100 dark:bg-[#0F1F1B] flex items-center justify-between flex-shrink-0 relative">
+          <div className="flex items-center gap-3">
+            <button onClick={() => setSidebarOpen(!sidebarOpen)} className="p-2 text-slate-500 dark:text-[#6B8077] hover:text-slate-900 dark:hover:text-[#E6F1ED] hover:bg-black/5 dark:hover:bg-white/5 rounded-xl transition-colors">
+              <Menu size={19} />
+            </button>
+            <div className="relative">
+              <div className="w-9 h-9 bg-gradient-to-br from-[#22C55E] to-[#3B82F6] rounded-xl flex items-center justify-center shadow-lg shadow-[#22C55E]/20">
+                <BrainCircuit className="text-white w-5 h-5" />
+              </div>
+              <div className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 border-2 border-stone-100 dark:border-[#0F1F1B] bg-[#22C55E] rounded-full" />
+            </div>
+            <div className="relative">
+              <button 
+                onClick={() => setIsPatientMenuOpen(!isPatientMenuOpen)}
+                className="flex flex-col items-start hover:opacity-80 transition-all text-left"
+              >
+                <div className="flex items-center gap-1.5">
+                   <h4 className="font-black text-slate-900 dark:text-[#E6F1ED] text-sm leading-tight uppercase tracking-wide">MediBOT Clinical AI</h4>
+                   <ChevronDown size={14} className={`text-slate-400 transition-transform ${isPatientMenuOpen ? 'rotate-180' : ''}`} />
+                </div>
+                <p className="text-[10px] text-slate-500 dark:text-[#6B8077] font-black uppercase tracking-widest truncate max-w-[150px]">
+                  {patient ? `Patient: ${patient.name}` : 'Select Patient Context'}
+                </p>
+              </button>
+
+              {/* Patient Selector Dropdown */}
+              <AnimatePresence>
+                {isPatientMenuOpen && (
+                  <>
+                    <div className="fixed inset-0 z-40" onClick={() => setIsPatientMenuOpen(false)} />
+                    <motion.div 
+                      initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 10 }}
+                      className="absolute left-0 top-full mt-2 w-64 bg-white dark:bg-[#132823] border border-slate-200 dark:border-white/5 rounded-2xl shadow-2xl z-50 overflow-hidden"
+                    >
+                      <div className="p-3 border-b border-slate-100 dark:border-white/5 bg-stone-50 dark:bg-black/20">
+                        <span className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">Switch Patient Context</span>
+                      </div>
+                      <div className="max-h-64 overflow-y-auto">
+                        {patients.map(p => (
+                          <button key={p.id} 
+                            onClick={() => { selectPatient(p.id); setIsPatientMenuOpen(false); }}
+                            className={`w-full flex items-center gap-3 p-3 hover:bg-[#22C55E]/5 transition-all text-left border-b border-slate-50 dark:border-white/5 last:border-0 ${patient?.id === p.id ? 'bg-[#22C55E]/10' : ''}`}
+                          >
+                            <div className="w-8 h-8 rounded-lg bg-slate-100 dark:bg-white/5 flex items-center justify-center text-xs font-black text-slate-500">
+                              {p.name.split(' ').map((n: string) => n[0]).join('')}
+                            </div>
+                            <div>
+                              <p className="text-sm font-bold text-slate-700 dark:text-[#E6F1ED]">{p.name}</p>
+                              <p className="text-[10px] text-slate-400 uppercase font-black">{p.gender}, {p.age}y</p>
+                            </div>
+                          </button>
+                        ))}
+                      </div>
+                    </motion.div>
+                  </>
+                )}
+              </AnimatePresence>
+            </div>
+          </div>
+          <button onClick={newChat} className="flex items-center gap-1.5 px-3 py-1.5 bg-white dark:bg-[#132823] border border-slate-200 dark:border-white/5 rounded-xl text-slate-500 dark:text-[#9FB3AA] hover:text-[#22C55E] hover:border-[#22C55E]/30 transition-all text-xs font-black uppercase tracking-widest">
+            <MessageSquare size={13} /> New
+          </button>
+        </div>
+
+        {/* Messages area */}
+        <div ref={scrollRef} className="flex-1 min-h-0 overflow-y-auto p-4 sm:p-6 space-y-4 scroll-smooth bg-stone-50 dark:bg-[#0B1412]">
+          {messages.length <= 1 && (
+            <div className="flex flex-col items-center justify-center py-10 gap-5 text-center">
+              <div className="w-16 h-16 bg-gradient-to-br from-[#22C55E]/20 to-[#3B82F6]/20 rounded-2xl flex items-center justify-center border border-[#22C55E]/30">
+                <BrainCircuit className="text-[#22C55E] w-8 h-8" />
+              </div>
+              <div>
+                <h3 className="text-slate-900 dark:text-[#E6F1ED] font-black text-base uppercase tracking-widest">MediBOT Clinical AI</h3>
+                <p className="text-slate-500 dark:text-[#6B8077] text-sm mt-1 max-w-sm font-medium">Your AI-powered clinical assistant. Ask about patient cases, drug interactions, clinical guidelines, and medical literature.</p>
+              </div>
+              <div className="flex flex-wrap justify-center gap-2">
+                {quickReplies.map((r, i) => (
+                  <button key={i} onClick={() => handleSend(r)}
+                    className="px-4 py-2 bg-white dark:bg-[#132823] border border-slate-200 dark:border-white/5 rounded-full text-xs font-black text-slate-500 dark:text-[#9FB3AA] hover:bg-[#22C55E]/10 hover:border-[#22C55E]/30 hover:text-[#22C55E] transition-all uppercase tracking-widest">
+                    {r}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {messages.map((msg, idx) => (
+            <motion.div key={idx} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.22 }}
+              className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
+              <div className="max-w-[85%] sm:max-w-[72%]">
+                <div className={`px-5 py-4 rounded-3xl text-sm leading-relaxed shadow-md ${msg.role === 'user'
+                  ? 'bg-[#22C55E] text-white rounded-tr-sm'
+                  : 'bg-white dark:bg-[#0F1F1B] border border-slate-200 dark:border-white/5 text-slate-700 dark:text-[#9FB3AA] rounded-tl-sm'}`}>
+                  {msg.text}
+                </div>
+              </div>
+            </motion.div>
+          ))}
+
+          {isTyping && (
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex justify-start">
+              <div className="bg-white dark:bg-[#0F1F1B] border border-slate-200 dark:border-white/5 px-5 py-4 rounded-3xl rounded-tl-sm flex gap-1.5 shadow-lg">
+                {[0, 130, 260].map(d => <span key={d} className="w-2 h-2 bg-[#22C55E] rounded-full animate-bounce" style={{ animationDelay: `${d}ms` }} />)}
+              </div>
+            </motion.div>
+          )}
+        </div>
+
+        {/* Input bar */}
+        <div className="px-4 sm:px-5 pb-4 pt-2 border-t border-slate-200 dark:border-white/5 bg-stone-100 dark:bg-[#0F1F1B] flex-shrink-0">
+          <div className="flex items-end gap-2 bg-white dark:bg-[#132823] px-3 py-2 rounded-2xl border border-slate-300 dark:border-white/10 focus-within:border-[#22C55E]/50 focus-within:ring-1 focus-within:ring-[#22C55E]/20 transition-all">
+            <button 
+              onClick={() => fileInputRef.current?.click()}
+              className="p-2.5 text-slate-400 hover:text-[#22C55E] hover:bg-[#22C55E]/5 rounded-xl transition-all"
+            >
+              <Paperclip size={18} />
+            </button>
+            <textarea value={input} onChange={e => setInput(e.target.value)}
+              onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSend(); } }}
+              placeholder="Ask MediBOT about patient cases, drug interactions, clinical guidelines…"
+              className="flex-1 bg-transparent text-slate-900 dark:text-[#E6F1ED] px-1 py-2.5 text-sm focus:outline-none resize-none placeholder-slate-400 dark:placeholder-[#6B8077] min-h-[44px] max-h-[130px]"
+              rows={1} />
+            <button onClick={() => handleSend()} disabled={!input.trim()}
+              className="p-2.5 bg-gradient-to-br from-[#22C55E] to-[#3B82F6] text-white rounded-xl hover:shadow-lg hover:shadow-[#22C55E]/25 disabled:opacity-40 transition-all flex-shrink-0">
+              <Send size={16} className="translate-x-0.5 -translate-y-0.5" />
+            </button>
+          </div>
+          <p className="text-center text-[10px] text-slate-400 dark:text-[#6B8077] mt-2 font-black uppercase tracking-widest">Clinical AI — Always verify with current medical evidence and guidelines.</p>
+        </div>
+      </div>
     </div>
   );
 };
+
 
 
 // ---------------------------------------------------------------------------
@@ -564,10 +965,10 @@ const ImagingLabTab = ({ patients }: { patients: any[] }) => {
           </div>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
-          {/* Scan Viewer */}
-          <div className="lg:col-span-8 space-y-6">
-            <div className="relative bg-slate-900 rounded-[3rem] overflow-hidden border-4 border-slate-200 dark:border-slate-800 shadow-2xl group aspect-[4/3] w-full">
+        <div className="flex flex-col gap-8 max-w-5xl mx-auto w-full">
+          {/* Scan Viewer - Full Width */}
+          <div className="w-full space-y-6">
+            <div className="relative bg-slate-900 rounded-[3rem] overflow-hidden border-4 border-slate-200 dark:border-slate-800 shadow-2xl group aspect-video w-full">
               {scanImageUrl ? <img src={scanImageUrl} alt="Medical scan" className="w-full h-full object-contain" /> : (
                 <div className="absolute inset-0 flex flex-col items-center justify-center text-slate-700 gap-6">
                   <div className="w-24 h-24 rounded-[2.5rem] bg-slate-800 flex items-center justify-center border-2 border-slate-700 shadow-inner"><Microscope size={48} className="text-slate-500" /></div>
@@ -613,42 +1014,64 @@ const ImagingLabTab = ({ patients }: { patients: any[] }) => {
             <input ref={fileRef} type="file" className="hidden" accept="image/*" onChange={e => e.target.files?.[0] && handleScan(e.target.files[0])} />
           </div>
 
-          {/* Diagnosis & Review */}
-          <div className="lg:col-span-4 space-y-6">
+          {/* Diagnosis & Review - Now Below */}
+          <div className="w-full max-w-4xl mx-auto space-y-6">
             <AnimatePresence>
             {scanResult && scanResult.predicted_class !== 'Error' ? (
-              <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }}
+              <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}
                 className={`p-8 rounded-[2.5rem] border-2 transition-all shadow-xl ${scanResult.predicted_class === 'Normal' ? 'bg-emerald-50 dark:bg-emerald-500/5 border-emerald-100 dark:border-emerald-900/50' : 'bg-red-50 dark:bg-red-500/5 border-red-100 dark:border-red-900/50'}`}
               >
-                <div className="flex items-center justify-between mb-8">
-                  <span className={`px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest ${scanResult.predicted_class === 'Normal' ? 'bg-emerald-500 text-white' : 'bg-red-500 text-white'}`}>{scanResult.severity} RISK</span>
-                  <div className="text-right">
-                    <p className="text-2xl font-black text-slate-900 dark:text-white tabular-nums">{scanResult.confidence}</p>
-                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-tighter">AI Confidence</p>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8">
+                  <div>
+                    <span className={`px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest ${scanResult.predicted_class === 'Normal' ? 'bg-emerald-500 text-white' : 'bg-red-500 text-white'}`}>{scanResult.severity} RISK</span>
+                    <h3 className="text-4xl font-black text-slate-900 dark:text-white tracking-tight mt-4 mb-2">{scanResult.predicted_class}</h3>
+                    <p className="text-sm font-medium text-slate-600 dark:text-slate-400 leading-relaxed">{scanResult.recommendation}</p>
+                  </div>
+                  <div className="flex flex-col items-start md:items-end justify-center">
+                    <p className="text-4xl font-black text-slate-900 dark:text-white tabular-nums">{scanResult.confidence}</p>
+                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-tighter">AI Confidence Index</p>
                   </div>
                 </div>
                 
-                <h3 className="text-3xl font-black text-slate-900 dark:text-white tracking-tight mb-2">{scanResult.predicted_class}</h3>
-                <p className="text-sm font-medium text-slate-600 dark:text-slate-400 leading-relaxed mb-8">{scanResult.recommendation}</p>
-
                 <div className="space-y-4 pt-8 border-t border-slate-200/50 dark:border-slate-800">
-                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block">Clinician Verification Note</label>
-                  <textarea placeholder="Document findings or override AI assessment..." value={doctorReview} onChange={e => setDoctorReview(e.target.value)}
-                    className="w-full p-5 bg-white dark:bg-slate-900 border-2 border-slate-100 dark:border-slate-800 rounded-[1.5rem] text-sm text-slate-900 dark:text-white font-medium focus:border-emerald-500 outline-none transition-all resize-none h-32"
-                  />
-                  <button onClick={handleSaveToTimeline} disabled={savingReview}
-                    className="w-full py-4 bg-slate-900 dark:bg-emerald-500 text-white rounded-2xl text-xs font-black tracking-widest hover:opacity-90 transition-all disabled:opacity-50 flex items-center justify-center gap-3 uppercase"
-                  >
-                    {savingReview ? <Loader2 size={16} className="animate-spin" /> : <ShieldCheck size={16} />} Save to Clinical Chart
-                  </button>
+                  {scanResult && (
+                    <div className="mb-8 p-6 bg-white dark:bg-black/20 rounded-3xl border border-slate-200 dark:border-white/5 shadow-inner">
+                      <div className="flex items-center justify-between mb-4">
+                        <h5 className="text-[11px] font-black uppercase tracking-widest text-slate-400">Hybrid AI Insights & Validation</h5>
+                        <div className="flex items-center gap-1.5 px-2 py-1 bg-[#22C55E]/10 rounded-lg">
+                          <Sparkles size={10} className="text-[#22C55E]" />
+                          <span className="text-[9px] font-black text-[#22C55E] uppercase">Cross-Validated</span>
+                        </div>
+                      </div>
+                      <p className="text-sm leading-relaxed text-slate-600 dark:text-[#9FB3AA] italic">
+                        {scanResult.clinical_insight || scanResult.recommendation}
+                      </p>
+                    </div>
+                  )}
+                  
+                  <div className="grid grid-cols-1 md:grid-cols-12 gap-6 items-end">
+                    <div className="md:col-span-8">
+                      <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-3">Clinician Verification Note</label>
+                      <textarea placeholder="Document findings or override AI assessment..." value={doctorReview} onChange={e => setDoctorReview(e.target.value)}
+                        className="w-full p-5 bg-white dark:bg-slate-900 border-2 border-slate-100 dark:border-slate-800 rounded-[1.5rem] text-sm text-slate-900 dark:text-white font-medium focus:border-emerald-500 outline-none transition-all resize-none h-24"
+                      />
+                    </div>
+                    <div className="md:col-span-4">
+                      <button onClick={handleSaveToTimeline} disabled={savingReview}
+                        className="w-full py-5 bg-slate-900 dark:bg-emerald-500 text-white rounded-2xl text-xs font-black tracking-widest hover:opacity-90 transition-all disabled:opacity-50 flex items-center justify-center gap-3 uppercase shadow-lg shadow-emerald-500/20"
+                      >
+                        {savingReview ? <Loader2 size={16} className="animate-spin" /> : <ShieldCheck size={16} />} Save to Chart
+                      </button>
+                    </div>
+                  </div>
                 </div>
               </motion.div>
             ) : (
-              <div className="p-8 rounded-[2.5rem] border-2 border-dashed border-slate-200 dark:border-slate-800 bg-white/50 dark:bg-slate-900/50 flex flex-col items-center justify-center text-center space-y-4 h-full min-h-[400px]">
-                <div className="w-16 h-16 rounded-2xl bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-slate-300 dark:text-slate-700"><Sparkles size={32} /></div>
+              <div className="p-12 rounded-[3rem] border-2 border-dashed border-slate-200 dark:border-slate-800 bg-white/50 dark:bg-slate-900/50 flex flex-col items-center justify-center text-center space-y-4">
+                <div className="w-20 h-20 rounded-3xl bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-slate-300 dark:text-slate-700 shadow-inner"><Sparkles size={40} /></div>
                 <div>
-                  <p className="text-sm font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest">Diagnostic Output</p>
-                  <p className="text-xs font-medium text-slate-500 dark:text-slate-600 px-6">Analysis results will appear here after image processing.</p>
+                  <p className="text-base font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest">Diagnostic Output</p>
+                  <p className="text-sm font-medium text-slate-500 dark:text-slate-600 px-6 max-w-md mx-auto">Analysis results and clinical insights will appear here after image processing.</p>
                 </div>
               </div>
             )}
@@ -767,20 +1190,20 @@ const PharmacyHubTab = ({ patients }: { patients: any[] }) => {
   };
 
   return (
-    <div className="flex-1 flex flex-col lg:flex-row overflow-hidden bg-[#0B1412]">
-      <div className="w-full lg:w-[450px] border-r border-white/5 bg-[#0F1F1B] flex flex-col h-full flex-shrink-0 shadow-2xl z-10">
-        <div className="p-8 border-b border-white/5 bg-[#132823]/50">
-          <h2 className="text-2xl font-black text-[#E6F1ED] tracking-tighter uppercase flex items-center gap-3"><Pill className="text-[#22C55E]" size={24}/> E-Prescribe Hub</h2>
-          <p className="text-[10px] font-black text-[#6B8077] uppercase tracking-[0.2em] mt-2">Authenticated Digital RX Issuance</p>
+    <div className="flex-1 flex flex-col lg:flex-row overflow-hidden bg-stone-50 dark:bg-[#0B1412]">
+      <div className="w-full lg:w-[450px] border-r border-slate-200 dark:border-white/5 bg-white dark:bg-[#0F1F1B] flex flex-col h-full flex-shrink-0 shadow-2xl z-10">
+        <div className="p-8 border-b border-slate-200 dark:border-white/5 bg-stone-50 dark:bg-[#132823]/50">
+          <h2 className="text-2xl font-black text-slate-900 dark:text-[#E6F1ED] tracking-tighter uppercase flex items-center gap-3"><Pill className="text-[#22C55E]" size={24}/> E-Prescribe Hub</h2>
+          <p className="text-[10px] font-black text-slate-400 dark:text-[#6B8077] uppercase tracking-[0.2em] mt-2">Authenticated Digital RX Issuance</p>
         </div>
         
         <div className="flex-1 overflow-y-auto p-8 space-y-10">
           <div className="space-y-3">
-            <label className="text-[10px] font-black text-[#6B8077] uppercase tracking-widest flex items-center gap-2"><User size={14}/> Active Chart</label>
+            <label className="text-[10px] font-black text-slate-400 dark:text-[#6B8077] uppercase tracking-widest flex items-center gap-2"><User size={14}/> Active Chart</label>
             <select value={selectedPatientId} onChange={e => setSelectedPatientId(e.target.value)}
-              className="w-full p-5 bg-[#0B1412] border border-white/5 rounded-2xl text-sm font-black text-[#E6F1ED] outline-none focus:border-[#22C55E]/50 transition-all uppercase tracking-tight"
+              className="w-full p-5 bg-stone-100 dark:bg-[#0B1412] border border-slate-200 dark:border-white/5 rounded-2xl text-sm font-black text-slate-900 dark:text-[#E6F1ED] outline-none focus:border-[#22C55E]/50 transition-all uppercase tracking-tight"
             >
-              {patients.map(p => <option key={p.id} value={p.id} className="bg-[#0F1F1B]">{p.name || 'Unnamed'}</option>)}
+              {patients.map(p => <option key={p.id} value={p.id} className="bg-white dark:bg-[#0F1F1B] text-slate-900 dark:text-[#E6F1ED]">{p.name || 'Unnamed'}</option>)}
             </select>
           </div>
 
@@ -789,39 +1212,39 @@ const PharmacyHubTab = ({ patients }: { patients: any[] }) => {
               <p className="text-[10px] font-black text-[#22C55E] uppercase tracking-widest mb-4 flex items-center gap-2"><Activity size={14}/> Concurrent Medications</p>
               <div className="flex flex-wrap gap-2">
                 {selectedPatient.activeMedications.map((m: string, i: number) => (
-                  <span key={i} className="px-3 py-1.5 bg-[#0B1412] border border-white/5 text-[#9FB3AA] text-[10px] font-black rounded-lg uppercase tracking-widest">{m}</span>
+                  <span key={i} className="px-3 py-1.5 bg-white dark:bg-[#0B1412] border border-slate-200 dark:border-white/5 text-slate-500 dark:text-[#9FB3AA] text-[10px] font-black rounded-lg uppercase tracking-widest">{m}</span>
                 ))}
               </div>
             </motion.div>
           )}
 
-          <div className="space-y-6 bg-[#132823]/30 p-8 rounded-3xl border border-white/5 shadow-inner">
+          <div className="space-y-6 bg-stone-50 dark:bg-[#132823]/30 p-8 rounded-3xl border border-slate-200 dark:border-white/5 shadow-inner">
             <div className="space-y-2">
-              <label className="text-[10px] font-black text-[#6B8077] uppercase tracking-widest ml-1">Medication Specification</label>
+              <label className="text-[10px] font-black text-slate-400 dark:text-[#6B8077] uppercase tracking-widest ml-1">Medication Specification</label>
               <input type="text" placeholder="e.g. Lisinopril 10mg" value={prescForm.name}
                 onChange={e => { setPrescForm(f => ({ ...f, name: e.target.value })); setInteractionWarning(e.target.value && selectedPatient?.activeMedications?.length ? checkInteractions(e.target.value, selectedPatient.activeMedications) : null); }}
-                className="w-full p-4 bg-[#0B1412] border border-white/5 focus:border-[#22C55E]/50 rounded-xl text-sm text-[#E6F1ED] font-bold outline-none transition-all placeholder:text-[#6B8077]" />
+                className="w-full p-4 bg-white dark:bg-[#0B1412] border border-slate-200 dark:border-white/5 focus:border-[#22C55E]/50 rounded-xl text-sm text-slate-900 dark:text-[#E6F1ED] font-bold outline-none transition-all placeholder:text-slate-400 dark:placeholder-[#6B8077]" />
             </div>
 
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <label className="text-[10px] font-black text-[#6B8077] uppercase tracking-widest ml-1">Dosage</label>
-                <input type="text" placeholder="500mg" value={prescForm.dosage} onChange={e => setPrescForm(f => ({ ...f, dosage: e.target.value }))} className="w-full p-4 bg-[#0B1412] border border-white/5 focus:border-[#22C55E]/50 rounded-xl text-sm text-[#E6F1ED] font-bold outline-none transition-all placeholder:text-[#6B8077]" />
+                <label className="text-[10px] font-black text-slate-400 dark:text-[#6B8077] uppercase tracking-widest ml-1">Dosage</label>
+                <input type="text" placeholder="500mg" value={prescForm.dosage} onChange={e => setPrescForm(f => ({ ...f, dosage: e.target.value }))} className="w-full p-4 bg-white dark:bg-[#0B1412] border border-slate-200 dark:border-white/5 focus:border-[#22C55E]/50 rounded-xl text-sm text-slate-900 dark:text-[#E6F1ED] font-bold outline-none transition-all placeholder:text-slate-400 dark:placeholder-[#6B8077]" />
               </div>
               <div className="space-y-2">
-                <label className="text-[10px] font-black text-[#6B8077] uppercase tracking-widest ml-1">Cycle</label>
-                <input type="text" placeholder="q.d. / b.i.d." value={prescForm.freq} onChange={e => setPrescForm(f => ({ ...f, freq: e.target.value }))} className="w-full p-4 bg-[#0B1412] border border-white/5 focus:border-[#22C55E]/50 rounded-xl text-sm text-[#E6F1ED] font-bold outline-none transition-all placeholder:text-[#6B8077]" />
+                <label className="text-[10px] font-black text-slate-400 dark:text-[#6B8077] uppercase tracking-widest ml-1">Cycle</label>
+                <input type="text" placeholder="q.d. / b.i.d." value={prescForm.freq} onChange={e => setPrescForm(f => ({ ...f, freq: e.target.value }))} className="w-full p-4 bg-white dark:bg-[#0B1412] border border-slate-200 dark:border-white/5 focus:border-[#22C55E]/50 rounded-xl text-sm text-slate-900 dark:text-[#E6F1ED] font-bold outline-none transition-all placeholder:text-slate-400 dark:placeholder-[#6B8077]" />
               </div>
             </div>
 
             <div className="space-y-2">
-              <label className="text-[10px] font-black text-[#6B8077] uppercase tracking-widest ml-1">Regimen Duration</label>
-              <input type="text" placeholder="14 Days" value={prescForm.duration} onChange={e => setPrescForm(f => ({ ...f, duration: e.target.value }))} className="w-full p-4 bg-[#0B1412] border border-white/5 focus:border-[#22C55E]/50 rounded-xl text-sm text-[#E6F1ED] font-bold outline-none transition-all placeholder:text-[#6B8077]" />
+              <label className="text-[10px] font-black text-slate-400 dark:text-[#6B8077] uppercase tracking-widest ml-1">Regimen Duration</label>
+              <input type="text" placeholder="14 Days" value={prescForm.duration} onChange={e => setPrescForm(f => ({ ...f, duration: e.target.value }))} className="w-full p-4 bg-white dark:bg-[#0B1412] border border-slate-200 dark:border-white/5 focus:border-[#22C55E]/50 rounded-xl text-sm text-slate-900 dark:text-[#E6F1ED] font-bold outline-none transition-all placeholder:text-slate-400 dark:placeholder-[#6B8077]" />
             </div>
 
             <div className="space-y-2">
-              <label className="text-[10px] font-black text-[#6B8077] uppercase tracking-widest ml-1">Clinical Notes</label>
-              <textarea placeholder="Instructional directives..." value={prescForm.notes} onChange={e => setPrescForm(f => ({ ...f, notes: e.target.value }))} className="w-full p-4 bg-[#0B1412] border border-white/5 focus:border-[#22C55E]/50 rounded-xl text-sm text-[#E6F1ED] font-medium outline-none transition-all resize-none h-24 placeholder:text-[#6B8077]" />
+              <label className="text-[10px] font-black text-slate-400 dark:text-[#6B8077] uppercase tracking-widest ml-1">Clinical Notes</label>
+              <textarea placeholder="Instructional directives..." value={prescForm.notes} onChange={e => setPrescForm(f => ({ ...f, notes: e.target.value }))} className="w-full p-4 bg-white dark:bg-[#0B1412] border border-slate-200 dark:border-white/5 focus:border-[#22C55E]/50 rounded-xl text-sm text-slate-900 dark:text-[#E6F1ED] font-medium outline-none transition-all resize-none h-24 placeholder:text-slate-400 dark:placeholder-[#6B8077]" />
             </div>
           </div>
 
@@ -840,30 +1263,30 @@ const PharmacyHubTab = ({ patients }: { patients: any[] }) => {
           </button>
 
           <AnimatePresence>{qrPayload && (
-            <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="bg-[#132823] p-8 rounded-3xl border border-[#22C55E]/40 shadow-2xl relative overflow-hidden mt-8">
+            <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="bg-white dark:bg-[#132823] p-8 rounded-3xl border border-slate-200 dark:border-[#22C55E]/40 shadow-2xl relative overflow-hidden mt-8">
               <div className="absolute top-0 left-0 w-full h-1 bg-[#22C55E]" />
               <div className="flex items-center justify-between mb-8">
                 <span className="text-[10px] font-black text-[#22C55E] uppercase tracking-widest">Encrypted RX Payload</span>
-                <button onClick={() => setQrPayload(null)} className="p-2 bg-[#0B1412] border border-white/5 rounded-xl text-[#6B8077] hover:text-[#E6F1ED] transition-colors"><X size={16} /></button>
+                <button onClick={() => setQrPayload(null)} className="p-2 bg-slate-50 dark:bg-[#0B1412] border border-slate-200 dark:border-white/5 rounded-xl text-slate-400 dark:text-[#6B8077] hover:text-slate-900 dark:hover:text-[#E6F1ED] transition-colors"><X size={16} /></button>
               </div>
               <div className="flex justify-center p-8 bg-white rounded-2xl shadow-inner mb-6">
                 <QRCodeSVG value={qrPayload} size={160} level="H" includeMargin />
               </div>
-              <p className="text-[10px] text-[#6B8077] text-center font-black uppercase tracking-widest px-4">Patient can authenticate at any digital pharmacy terminal.</p>
+              <p className="text-[10px] text-slate-400 dark:text-[#6B8077] text-center font-black uppercase tracking-widest px-4">Patient can authenticate at any digital pharmacy terminal.</p>
             </motion.div>
           )}</AnimatePresence>
         </div>
       </div>
 
-      <div className="flex-1 overflow-y-auto p-10 bg-[#0B1412] relative h-full">
+      <div className="flex-1 overflow-y-auto p-10 bg-stone-50 dark:bg-[#0B1412] relative h-full">
         <div className="max-w-4xl mx-auto space-y-10 pb-24">
-          <div className="sticky top-0 z-10 bg-[#0B1412]/80 backdrop-blur-xl py-6 border-b border-white/5 mb-10 flex justify-between items-end">
+          <div className="sticky top-0 z-10 bg-stone-50/80 dark:bg-[#0B1412]/80 backdrop-blur-xl py-6 border-b border-slate-200 dark:border-white/5 mb-10 flex justify-between items-end">
             <div>
-              <h2 className="text-3xl font-black text-[#E6F1ED] tracking-tighter uppercase">Clinical RX Archive</h2>
-              <p className="text-[10px] font-black text-[#6B8077] uppercase tracking-[0.2em] mt-2">{selectedPatient?.name ? `Historical Records for ${selectedPatient.name}` : 'Awaiting chart selection'}</p>
+              <h2 className="text-3xl font-black text-slate-900 dark:text-[#E6F1ED] tracking-tighter uppercase">Clinical RX Archive</h2>
+              <p className="text-[10px] font-black text-slate-400 dark:text-[#6B8077] uppercase tracking-[0.2em] mt-2">{selectedPatient?.name ? `Historical Records for ${selectedPatient.name}` : 'Awaiting chart selection'}</p>
             </div>
-            <div className="px-5 py-2.5 bg-[#0F1F1B] rounded-xl border border-white/5 shadow-sm">
-              <span className="text-[10px] font-black text-[#9FB3AA] uppercase tracking-widest flex items-center gap-2 tabular-nums">
+            <div className="px-5 py-2.5 bg-white dark:bg-[#0F1F1B] rounded-xl border border-slate-200 dark:border-white/5 shadow-sm">
+              <span className="text-[10px] font-black text-slate-500 dark:text-[#9FB3AA] uppercase tracking-widest flex items-center gap-2 tabular-nums">
                 <History size={14} className="text-[#22C55E]" /> ISSUED: {rxHistory.length}
               </span>
             </div>
@@ -882,37 +1305,37 @@ const PharmacyHubTab = ({ patients }: { patients: any[] }) => {
             <div className="grid gap-6">
               {rxHistory.map((rx, i) => (
                 <motion.div key={i} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.05 }}
-                  className="bg-[#0F1F1B] p-8 rounded-3xl border border-white/5 shadow-sm hover:border-[#22C55E]/30 transition-all group relative overflow-hidden"
+                  className="bg-white dark:bg-[#0F1F1B] p-8 rounded-3xl border border-slate-200 dark:border-white/5 shadow-sm hover:border-[#22C55E]/30 transition-all group relative overflow-hidden"
                 >
                   <div className="absolute top-0 left-0 w-[4px] h-full bg-[#22C55E] opacity-0 group-hover:opacity-100 transition-opacity" />
                   <div className="flex flex-col md:flex-row md:items-start justify-between gap-6">
                     <div className="flex items-start gap-6">
-                      <div className="w-16 h-16 rounded-2xl bg-[#132823] text-[#22C55E] flex items-center justify-center flex-shrink-0 border border-white/5 shadow-inner">
+                      <div className="w-16 h-16 rounded-2xl bg-slate-50 dark:bg-[#132823] text-[#22C55E] flex items-center justify-center flex-shrink-0 border border-slate-200 dark:border-white/5 shadow-inner">
                         <Pill size={32} />
                       </div>
                       <div>
                         <div className="flex flex-wrap items-center gap-4 mb-3">
-                          <h4 className="text-xl font-black text-[#E6F1ED] uppercase tracking-tight">{rx.medications?.[0]?.name || rx.medication}</h4>
-                          <span className="px-3 py-1 bg-[#132823] text-[#9FB3AA] text-[10px] font-black rounded-md border border-white/5 uppercase tracking-widest">{rx.medications?.[0]?.dosage || rx.dosage}</span>
+                          <h4 className="text-xl font-black text-slate-900 dark:text-[#E6F1ED] uppercase tracking-tight">{rx.medications?.[0]?.name || rx.medication}</h4>
+                          <span className="px-3 py-1 bg-slate-50 dark:bg-[#132823] text-slate-500 dark:text-[#9FB3AA] text-[10px] font-black rounded-md border border-slate-200 dark:border-white/5 uppercase tracking-widest">{rx.medications?.[0]?.dosage || rx.dosage}</span>
                           <span className="px-3 py-1 bg-[#22C55E]/10 text-[#22C55E] text-[10px] font-black rounded-md border border-[#22C55E]/20 uppercase tracking-widest">{rx.status || 'Active'}</span>
                         </div>
-                        <p className="text-sm font-bold text-[#9FB3AA] uppercase tracking-widest">{rx.medications?.[0]?.frequency || rx.frequency} <span className="mx-3 text-[#6B8077] opacity-30">•</span> {rx.medications?.[0]?.duration || rx.duration}</p>
+                        <p className="text-sm font-bold text-slate-500 dark:text-[#9FB3AA] uppercase tracking-widest">{rx.medications?.[0]?.frequency || rx.frequency} <span className="mx-3 text-slate-200 dark:text-[#6B8077] opacity-30">•</span> {rx.medications?.[0]?.duration || rx.duration}</p>
                       </div>
                     </div>
                     <div className="text-left md:text-right">
-                      <p className="text-[9px] font-black text-[#6B8077] uppercase tracking-[0.2em] mb-1">Authorization Date</p>
-                      <p className="text-sm font-black text-[#E6F1ED] tracking-widest uppercase tabular-nums">{new Date(rx.timestamp || rx.issuedAt || Date.now()).toLocaleDateString(undefined, {month:'short', day:'numeric', year:'numeric'})}</p>
+                      <p className="text-[9px] font-black text-slate-400 dark:text-[#6B8077] uppercase tracking-[0.2em] mb-1">Authorization Date</p>
+                      <p className="text-sm font-black text-slate-900 dark:text-[#E6F1ED] tracking-widest uppercase tabular-nums">{new Date(rx.timestamp || rx.issuedAt || Date.now()).toLocaleDateString(undefined, {month:'short', day:'numeric', year:'numeric'})}</p>
                     </div>
                   </div>
                   {rx.notes && (
-                    <div className="mt-8 p-6 bg-[#0B1412] rounded-2xl border border-white/5 text-[13px] text-[#9FB3AA] font-medium leading-relaxed flex items-start gap-4">
-                      <FileText size={18} className="text-[#6B8077] flex-shrink-0 mt-0.5" />
+                    <div className="mt-8 p-6 bg-slate-50 dark:bg-[#0B1412] rounded-2xl border border-slate-200 dark:border-white/5 text-[13px] text-slate-600 dark:text-[#9FB3AA] font-medium leading-relaxed flex items-start gap-4">
+                      <FileText size={18} className="text-slate-400 dark:text-[#6B8077] flex-shrink-0 mt-0.5" />
                       <p>{rx.notes}</p>
                     </div>
                   )}
-                  <div className="mt-8 flex items-center justify-between pt-6 border-t border-white/5">
-                    <p className="text-[10px] font-black text-[#6B8077] uppercase tracking-[0.2em] flex items-center gap-2"><Stethoscope size={14} className="text-[#22C55E]"/> MD: {rx.prescribedBy}</p>
-                    <p className="text-[10px] font-black text-[#6B8077] uppercase tracking-[0.2em] flex items-center gap-2"><User size={14}/> PATIENT: {rx.patientName}</p>
+                  <div className="mt-8 flex items-center justify-between pt-6 border-t border-slate-200 dark:border-white/5">
+                    <p className="text-[10px] font-black text-slate-400 dark:text-[#6B8077] uppercase tracking-[0.2em] flex items-center gap-2"><Stethoscope size={14} className="text-[#22C55E]"/> MD: {rx.prescribedBy}</p>
+                    <p className="text-[10px] font-black text-slate-400 dark:text-[#6B8077] uppercase tracking-[0.2em] flex items-center gap-2"><User size={14}/> PATIENT: {rx.patientName}</p>
                   </div>
                 </motion.div>
               ))}
@@ -981,14 +1404,14 @@ const AppointmentsTab = () => {
   };
 
   return (
-    <div className="flex-1 p-10 overflow-y-auto space-y-10 bg-[#0B1412]">
-      <div className="flex items-end justify-between border-b border-white/5 pb-8">
+    <div className="flex-1 p-10 overflow-y-auto space-y-10 bg-stone-50 dark:bg-[#0B1412]">
+      <div className="flex items-end justify-between border-b border-slate-200 dark:border-white/5 pb-8">
         <div>
-          <h2 className="text-3xl font-black text-[#E6F1ED] tracking-tighter uppercase">Clinical Appointments</h2>
-          <p className="text-[10px] font-black text-[#6B8077] uppercase tracking-[0.2em] mt-2">Authenticated Consultation Queue</p>
+          <h2 className="text-3xl font-black text-slate-900 dark:text-[#E6F1ED] tracking-tighter uppercase">Clinical Appointments</h2>
+          <p className="text-[10px] font-black text-slate-400 dark:text-[#6B8077] uppercase tracking-[0.2em] mt-2">Authenticated Consultation Queue</p>
         </div>
-        <div className="px-5 py-2.5 bg-[#0F1F1B] rounded-xl border border-white/5">
-          <span className="text-[10px] font-black text-[#9FB3AA] uppercase tracking-widest flex items-center gap-2">
+        <div className="px-5 py-2.5 bg-white dark:bg-[#0F1F1B] rounded-xl border border-slate-200 dark:border-white/5">
+          <span className="text-[10px] font-black text-slate-500 dark:text-[#9FB3AA] uppercase tracking-widest flex items-center gap-2">
             <Clock size={14} className="text-[#22C55E]" /> QUEUE: {appointments.length}
           </span>
         </div>
@@ -998,32 +1421,32 @@ const AppointmentsTab = () => {
         <div className="flex justify-center py-40"><Loader2 size={48} className="animate-spin text-[#22C55E]/50" /></div>
       ) : appointments.length === 0 ? (
         <div className="flex flex-col items-center justify-center py-40 gap-6 opacity-30">
-          <div className="w-24 h-24 rounded-full bg-[#132823] border-2 border-dashed border-white/10 flex items-center justify-center shadow-inner text-[#6B8077]">
+          <div className="w-24 h-24 rounded-full bg-slate-100 dark:bg-[#132823] border-2 border-dashed border-slate-200 dark:border-white/10 flex items-center justify-center shadow-inner text-slate-400 dark:text-[#6B8077]">
              <Calendar size={48} />
           </div>
-          <p className="text-[#9FB3AA] font-black text-xs uppercase tracking-[0.3em]">No Pending Encounters</p>
+          <p className="text-slate-500 dark:text-[#9FB3AA] font-black text-xs uppercase tracking-[0.3em]">No Pending Encounters</p>
         </div>
       ) : (
         <div className="grid gap-6 max-w-6xl">
           {appointments.map(a => (
             <motion.div key={a.id} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
-              className="bg-[#0F1F1B] p-8 rounded-3xl border border-white/5 shadow-sm hover:border-[#22C55E]/30 transition-all group relative overflow-hidden flex flex-col md:flex-row justify-between items-center gap-8"
+              className="bg-white dark:bg-[#0F1F1B] p-8 rounded-3xl border border-slate-200 dark:border-white/5 shadow-sm hover:border-[#22C55E]/30 transition-all group relative overflow-hidden flex flex-col md:flex-row justify-between items-center gap-8"
             >
               <div className="absolute top-0 left-0 w-[4px] h-full bg-[#22C55E] opacity-0 group-hover:opacity-100 transition-opacity" />
               <div className="flex-1">
                 <div className="flex items-center gap-4 mb-4">
-                  <div className="w-12 h-12 rounded-xl bg-[#132823] flex items-center justify-center text-[#E6F1ED] font-black border border-white/5">
+                  <div className="w-12 h-12 rounded-xl bg-slate-50 dark:bg-[#132823] flex items-center justify-center text-slate-900 dark:text-[#E6F1ED] font-black border border-slate-200 dark:border-white/5">
                     {a.patientName?.charAt(0) || '?'}
                   </div>
                   <div>
-                    <h4 className="text-xl font-black text-[#E6F1ED] uppercase tracking-tight">{a.patientName}</h4>
+                    <h4 className="text-xl font-black text-slate-900 dark:text-[#E6F1ED] uppercase tracking-tight">{a.patientName}</h4>
                     <div className="flex items-center gap-4 mt-1">
                       <p className="text-[10px] font-black text-[#22C55E] uppercase tracking-widest flex items-center gap-1.5"><Calendar size={12}/> {a.date}</p>
-                      <p className="text-[10px] font-black text-[#9FB3AA] uppercase tracking-widest flex items-center gap-1.5"><Clock size={12}/> {a.time}</p>
+                      <p className="text-[10px] font-black text-slate-400 dark:text-[#9FB3AA] uppercase tracking-widest flex items-center gap-1.5"><Clock size={12}/> {a.time}</p>
                     </div>
                   </div>
                 </div>
-                <div className="p-4 bg-[#0B1412] rounded-xl border border-white/5 text-[13px] text-[#9FB3AA] font-medium leading-relaxed italic">
+                <div className="p-4 bg-slate-50 dark:bg-[#0B1412] rounded-xl border border-slate-200 dark:border-white/5 text-[13px] text-slate-500 dark:text-[#9FB3AA] font-medium leading-relaxed italic">
                   "{a.reason || 'Clinical evaluation requested.'}"
                 </div>
               </div>
@@ -1035,11 +1458,11 @@ const AppointmentsTab = () => {
                       className="flex-1 py-3.5 px-6 text-[10px] font-black bg-[#22C55E] text-white rounded-xl uppercase tracking-widest hover:bg-[#1DA851] transition-all shadow-lg shadow-[#22C55E]/10"
                     >Confirm</button>
                     <button onClick={() => handleAction(a.id, 'rescheduled')} 
-                      className="flex-1 py-3.5 px-6 text-[10px] font-black bg-[#132823] text-[#9FB3AA] rounded-xl border border-white/5 uppercase tracking-widest hover:text-[#E6F1ED] hover:bg-[#1C3A33] transition-all"
+                      className="flex-1 py-3.5 px-6 text-[10px] font-black bg-white dark:bg-[#132823] text-slate-400 dark:text-[#9FB3AA] rounded-xl border border-slate-200 dark:border-white/5 uppercase tracking-widest hover:text-slate-900 dark:hover:text-[#E6F1ED] hover:bg-slate-50 dark:hover:bg-[#1C3A33] transition-all"
                     >Reschedule</button>
                   </>
                 ) : (
-                  <div className={`text-center py-4 px-6 text-[10px] font-black rounded-xl uppercase tracking-[0.2em] border ${a.status === 'confirmed' ? 'bg-[#22C55E]/10 text-[#22C55E] border-[#22C55E]/20' : 'bg-[#132823] text-[#6B8077] border-white/5'}`}>
+                  <div className={`text-center py-4 px-6 text-[10px] font-black rounded-xl uppercase tracking-[0.2em] border ${a.status === 'confirmed' ? 'bg-[#22C55E]/10 text-[#22C55E] border-[#22C55E]/20' : 'bg-slate-100 dark:bg-[#132823] text-slate-400 dark:text-[#6B8077] border-slate-200 dark:border-white/5'}`}>
                     {a.status}
                   </div>
                 )}
@@ -1079,10 +1502,10 @@ const AIInsightsTab = ({ patients }: { patients: any[] }) => {
   const bloodTypeData = Object.entries(bloodTypes).map(([type, count]) => ({ type, count }));
 
   return (
-    <div className="flex-1 overflow-y-auto p-8 space-y-10 bg-[#0B1412]">
+    <div className="flex-1 overflow-y-auto p-8 space-y-10 bg-stone-50 dark:bg-[#0B1412]">
       <div>
-        <h2 className="text-3xl font-black text-[#E6F1ED] tracking-tighter uppercase">Clinical Intelligence Dashboard</h2>
-        <p className="text-[10px] font-black text-[#6B8077] uppercase tracking-[0.2em] mt-2">Cohort-Wide Analytics & Risk Profiling</p>
+        <h2 className="text-3xl font-black text-slate-900 dark:text-[#E6F1ED] tracking-tighter uppercase">Clinical Intelligence Dashboard</h2>
+        <p className="text-[10px] font-black text-slate-400 dark:text-[#6B8077] uppercase tracking-[0.2em] mt-2">Cohort-Wide Analytics & Risk Profiling</p>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
@@ -1092,22 +1515,22 @@ const AIInsightsTab = ({ patients }: { patients: any[] }) => {
           { label: 'SpO₂ Baseline', val: `${avgSpo2}%`, sub: avgSpo2 < 95 ? 'Hypoxic Risk' : 'Saturated', icon: Activity, color: avgSpo2 < 95 ? '#F59E0B' : '#3B82F6' },
           { label: 'Mean Age', val: `${avgAge}y`, sub: 'Demographic Mean', icon: User, color: '#9FB3AA' },
         ].map(({ label, val, sub, icon: Icon, color }) => (
-          <div key={label} className="bg-[#0F1F1B] p-6 rounded-2xl border border-white/5 shadow-sm relative overflow-hidden group">
-            <div className="absolute top-0 right-0 w-24 h-24 bg-white/5 rounded-full blur-[40px] -mr-12 -mt-12 group-hover:scale-150 transition-transform duration-700" />
+          <div key={label} className="bg-white dark:bg-[#0F1F1B] p-6 rounded-2xl border border-slate-200 dark:border-white/5 shadow-sm relative overflow-hidden group">
+            <div className="absolute top-0 right-0 w-24 h-24 bg-[#22C55E]/5 rounded-full blur-[40px] -mr-12 -mt-12 group-hover:scale-150 transition-transform duration-700" />
             <div className="flex items-center justify-between mb-4 relative z-10">
-              <span className="text-[10px] font-black text-[#6B8077] uppercase tracking-widest">{label}</span>
+              <span className="text-[10px] font-black text-slate-400 dark:text-[#6B8077] uppercase tracking-widest">{label}</span>
               <Icon size={16} style={{ color }} />
             </div>
-            <p className="text-3xl font-black text-[#E6F1ED] tracking-tight relative z-10">{val}</p>
+            <p className="text-3xl font-black text-slate-900 dark:text-[#E6F1ED] tracking-tight relative z-10">{val}</p>
             <p className="text-[10px] font-black uppercase tracking-widest mt-2 relative z-10" style={{ color: color + 'CC' }}>{sub}</p>
           </div>
         ))}
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        <div className="bg-[#0F1F1B] p-8 rounded-2xl border border-white/5 shadow-sm">
-          <h3 className="text-[11px] font-black text-[#E6F1ED] uppercase tracking-[0.2em] mb-8 flex items-center gap-3"><BarChart3 size={15} className="text-[#22C55E]" /> Risk Stratification</h3>
-          {total === 0 ? <div className="text-[#6B8077] text-[10px] font-black uppercase tracking-widest text-center py-16 border-2 border-dashed border-white/5 rounded-xl">No Analytics Data</div> : (
+        <div className="bg-white dark:bg-[#0F1F1B] p-8 rounded-2xl border border-slate-200 dark:border-white/5 shadow-sm">
+          <h3 className="text-[11px] font-black text-slate-900 dark:text-[#E6F1ED] uppercase tracking-[0.2em] mb-8 flex items-center gap-3"><BarChart3 size={15} className="text-[#22C55E]" /> Risk Stratification</h3>
+          {total === 0 ? <div className="text-slate-400 dark:text-[#6B8077] text-[10px] font-black uppercase tracking-widest text-center py-16 border-2 border-dashed border-slate-200 dark:border-white/5 rounded-xl">No Analytics Data</div> : (
             <>
               <div className="h-56">
                 <ResponsiveContainer width="100%" height="100%">
@@ -1115,7 +1538,7 @@ const AIInsightsTab = ({ patients }: { patients: any[] }) => {
                     <Pie data={priorityData} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={80} innerRadius={50} paddingAngle={5}>
                       {priorityData.map((entry, i) => <Cell key={i} fill={entry.color} />)}
                     </Pie>
-                    <Tooltip contentStyle={{ backgroundColor: '#132823', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '12px', fontSize: '12px', fontWeight: '900', color: '#E6F1ED' }} />
+                    <Tooltip contentStyle={{ backgroundColor: 'rgba(15, 31, 27, 0.95)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '12px', fontSize: '12px', fontWeight: '900', color: '#E6F1ED' }} />
                   </PieChart>
                 </ResponsiveContainer>
               </div>
@@ -1123,7 +1546,7 @@ const AIInsightsTab = ({ patients }: { patients: any[] }) => {
                 {priorityData.map(d => (
                   <div key={d.name} className="flex items-center gap-2">
                     <div className="w-2.5 h-2.5 rounded-full" style={{ background: d.color }} />
-                    <span className="text-[10px] font-black text-[#9FB3AA] uppercase tracking-widest">{d.name}</span>
+                    <span className="text-[10px] font-black text-slate-500 dark:text-[#9FB3AA] uppercase tracking-widest">{d.name}</span>
                   </div>
                 ))}
               </div>
@@ -1131,31 +1554,31 @@ const AIInsightsTab = ({ patients }: { patients: any[] }) => {
           )}
         </div>
 
-        <div className="bg-[#0F1F1B] p-8 rounded-2xl border border-white/5 shadow-sm col-span-2">
-          <h3 className="text-[11px] font-black text-[#E6F1ED] uppercase tracking-[0.2em] mb-2 flex items-center gap-3"><TrendingUp size={15} className="text-[#22C55E]" /> Cohort Vital Trends</h3>
-          <p className="text-[10px] font-black text-[#6B8077] uppercase tracking-widest mb-8">Aggregated 7-Day Vitals Baseline</p>
+        <div className="bg-white dark:bg-[#0F1F1B] p-8 rounded-2xl border border-slate-200 dark:border-white/5 shadow-sm col-span-2">
+          <h3 className="text-[11px] font-black text-slate-900 dark:text-[#E6F1ED] uppercase tracking-[0.2em] mb-2 flex items-center gap-3"><TrendingUp size={15} className="text-[#22C55E]" /> Cohort Vital Trends</h3>
+          <p className="text-[10px] font-black text-slate-400 dark:text-[#6B8077] uppercase tracking-widest mb-8">Aggregated 7-Day Vitals Baseline</p>
           <div className="h-56">
             <ResponsiveContainer width="100%" height="100%">
               <LineChart data={weeklyTrend}>
                 <XAxis dataKey="day" stroke="#6B8077" fontSize={10} tickLine={false} axisLine={false} />
                 <YAxis hide />
-                <Tooltip contentStyle={{ backgroundColor: '#132823', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '12px', fontSize: '12px', color: '#E6F1ED' }} />
+                <Tooltip contentStyle={{ backgroundColor: 'rgba(255,255,255,0.95)', border: '1px solid rgba(0,0,0,0.1)', borderRadius: '12px', fontSize: '12px', color: '#0F172A' }} />
                 <Line type="monotone" dataKey="heartRate" stroke="#EF4444" strokeWidth={3} dot={false} />
                 <Line type="monotone" dataKey="spo2" stroke="#3B82F6" strokeWidth={3} dot={false} />
               </LineChart>
             </ResponsiveContainer>
           </div>
           <div className="flex gap-6 mt-6">
-            <div className="flex items-center gap-2"><div className="w-3 h-3 rounded-full bg-[#EF4444]" /><span className="text-[10px] font-black text-[#6B8077] uppercase tracking-widest">Mean HR</span></div>
-            <div className="flex items-center gap-2"><div className="w-3 h-3 rounded-full bg-[#3B82F6]" /><span className="text-[10px] font-black text-[#6B8077] uppercase tracking-widest">Mean SpO₂</span></div>
+            <div className="flex items-center gap-2"><div className="w-3 h-3 rounded-full bg-[#EF4444]" /><span className="text-[10px] font-black text-slate-400 dark:text-[#6B8077] uppercase tracking-widest">Mean HR</span></div>
+            <div className="flex items-center gap-2"><div className="w-3 h-3 rounded-full bg-[#3B82F6]" /><span className="text-[10px] font-black text-slate-400 dark:text-[#6B8077] uppercase tracking-widest">Mean SpO₂</span></div>
           </div>
         </div>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-        <div className="bg-[#0F1F1B] p-8 rounded-2xl border border-white/5 shadow-sm">
-          <h3 className="text-[11px] font-black text-[#E6F1ED] uppercase tracking-[0.2em] mb-8 flex items-center gap-3"><Zap size={15} className="text-[#22C55E]" /> Hematological Metrics</h3>
-          {bloodTypeData.length === 0 ? <div className="text-[#6B8077] text-[10px] font-black text-center py-12 uppercase tracking-widest">No Blood Type Data</div> : (
+        <div className="bg-white dark:bg-[#0F1F1B] p-8 rounded-2xl border border-slate-200 dark:border-white/5 shadow-sm">
+          <h3 className="text-[11px] font-black text-slate-900 dark:text-[#E6F1ED] uppercase tracking-[0.2em] mb-8 flex items-center gap-3"><Zap size={15} className="text-[#22C55E]" /> Hematological Metrics</h3>
+          {bloodTypeData.length === 0 ? <div className="text-slate-400 dark:text-[#6B8077] text-[10px] font-black text-center py-12 uppercase tracking-widest">No Blood Type Data</div> : (
             <div className="h-48">
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart data={bloodTypeData}>
@@ -1169,8 +1592,8 @@ const AIInsightsTab = ({ patients }: { patients: any[] }) => {
           )}
         </div>
 
-        <div className="bg-[#0F1F1B] p-8 rounded-2xl border border-white/5 shadow-sm">
-          <h3 className="text-[11px] font-black text-[#E6F1ED] uppercase tracking-[0.2em] mb-8 flex items-center gap-3"><ShieldCheck size={15} className="text-[#22C55E]" /> Critical Alert Summary</h3>
+        <div className="bg-white dark:bg-[#0F1F1B] p-8 rounded-2xl border border-slate-200 dark:border-white/5 shadow-sm">
+          <h3 className="text-[11px] font-black text-slate-900 dark:text-[#E6F1ED] uppercase tracking-[0.2em] mb-8 flex items-center gap-3"><ShieldCheck size={15} className="text-[#22C55E]" /> Critical Alert Summary</h3>
           <div className="space-y-4">
             {[
               { label: 'Tachycardia Cases (HR > 100)', count: patients.filter(p => p.vitals.hr > 100).length, color: '#EF4444' },
@@ -1241,6 +1664,36 @@ export default function DoctorDashboard({ onLogout }: { onLogout: () => void }) 
   const initials = realDoctorName.split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase();
   const hasAlert = patient ? (patient.vitals.hr > 100 || patient.vitals.spo2 < 94) : patients.some(p => p.priority === 'red');
 
+  const [showDocProfile, setShowDocProfile] = useState(false);
+  const [docData, setDocData] = useState<any>(null);
+  const [isEditingProfile, setIsEditingProfile] = useState(false);
+  const [editFormData, setEditFormData] = useState<any>({});
+
+  useEffect(() => {
+    if (showDocProfile && auth.currentUser?.uid) {
+       getDoc(doc(db, 'users', auth.currentUser.uid)).then(s => {
+         if (s.exists()) {
+            setDocData(s.data());
+            setEditFormData(s.data());
+         }
+       });
+    }
+  }, [showDocProfile]);
+
+  const handleSaveProfile = async () => {
+    if (!auth.currentUser?.uid) return;
+    try {
+      await setDoc(doc(db, 'users', auth.currentUser.uid), editFormData, { merge: true });
+      setDocData(editFormData);
+      setRealDoctorName(editFormData.name || realDoctorName);
+      setIsEditingProfile(false);
+      toast.success('Clinical profile updated successfully');
+    } catch (err) {
+      console.error(err);
+      toast.error('Failed to update profile');
+    }
+  };
+
   const navItems: { id: DoctorTab; label: string; icon: any }[] = [
     { id: 'registry', label: 'Patient Registry', icon: Users },
     { id: 'command', label: 'Clinical Command', icon: Activity },
@@ -1251,49 +1704,122 @@ export default function DoctorDashboard({ onLogout }: { onLogout: () => void }) 
     { id: 'assistant', label: 'Personal AI', icon: BrainCircuit },
   ];
 
-  if (loading) return <div className="min-h-screen bg-[#0B1412] flex items-center justify-center flex-col gap-8"><div className="w-24 h-24 bg-[#0F1F1B] rounded-[2rem] border border-white/5 flex items-center justify-center text-[#22C55E] shadow-2xl animate-pulse"><Activity size={48} /></div><p className="text-[11px] font-black text-[#E6F1ED] uppercase tracking-[0.5em] animate-pulse">Initializing Command Interface...</p></div>;
+  if (loading) return <div className="min-h-screen bg-stone-50 dark:bg-[#0B1412] flex items-center justify-center flex-col gap-8"><div className="w-24 h-24 bg-white dark:bg-[#0F1F1B] rounded-[2rem] border border-slate-200 dark:border-white/5 flex items-center justify-center text-[#22C55E] shadow-2xl animate-pulse"><Activity size={48} /></div><p className="text-[11px] font-black text-slate-600 dark:text-[#E6F1ED] uppercase tracking-[0.5em] animate-pulse">Initializing Command Interface...</p></div>;
 
   return (
-    <div className="flex h-screen bg-[#0B1412] text-[#E6F1ED] overflow-hidden font-sans selection:bg-[#22C55E]/30">
+    <div className="flex h-screen bg-stone-50 dark:bg-[#0B1412] text-slate-900 dark:text-[#E6F1ED] overflow-hidden font-sans selection:bg-[#22C55E]/30">
       <Sidebar 
         activeTab={activeTab} setActiveTab={setActiveTab} 
         onLogout={onLogout} doctorName={realDoctorName} 
         initials={initials} navItems={navItems} 
         isOpen={isSidebarOpen} setIsOpen={setIsSidebarOpen} 
+        onShowProfile={() => { setShowDocProfile(true); setIsEditingProfile(false); }}
       />
 
       <main className="flex-1 flex flex-col min-w-0 relative h-full">
-        <header className="h-16 flex items-center justify-between px-8 bg-[#0F1F1B]/80 backdrop-blur-xl border-b border-white/5 z-20 lg:hidden">
-          <button onClick={() => setIsSidebarOpen(true)} className="p-2 -ml-2 text-[#9FB3AA] hover:text-[#E6F1ED] transition-colors"><Menu size={24} /></button>
+        <header className="h-16 flex items-center justify-between px-8 bg-white/80 dark:bg-[#0F1F1B]/80 backdrop-blur-xl border-b border-slate-200 dark:border-white/5 z-20 lg:hidden">
+          <button onClick={() => setIsSidebarOpen(true)} className="p-2 -ml-2 text-slate-500 dark:text-[#9FB3AA] hover:text-slate-900 dark:hover:text-[#E6F1ED] transition-colors"><Menu size={24} /></button>
           <div className="flex items-center gap-3">
-             <div className="w-8 h-8 bg-[#22C55E] rounded-lg flex items-center justify-center text-[#0B1412] font-black text-xs">{initials}</div>
-             <span className="text-[10px] font-black uppercase tracking-widest text-[#E6F1ED]">{activeTab}</span>
+             <div className="w-8 h-8 bg-[#22C55E] rounded-lg flex items-center justify-center text-white font-black text-xs">{initials}</div>
+             <span className="text-[10px] font-black uppercase tracking-widest text-slate-700 dark:text-[#E6F1ED]">{activeTab}</span>
           </div>
         </header>
 
         <div className="flex-1 flex flex-col overflow-hidden relative">
-          <AnimatePresence mode="wait">
-            <motion.div key={activeTab} initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.2 }} className="flex-1 flex flex-col overflow-hidden h-full">
-              {activeTab === 'registry' && <PatientRegistryTab patients={patients} onSelectPatient={(id) => { selectPatient(id); setActiveTab('command'); }} />}
-              {activeTab === 'command' && <ActivePatientProfile patient={patient} onBack={() => setActiveTab('registry')} />}
-              {activeTab === 'imaging' && <ImagingLabTab patients={patients} />}
-              {activeTab === 'pharmacy' && <PharmacyHubTab patients={patients} />}
-              {activeTab === 'insights' && <AIInsightsTab patients={patients} />}
-              {activeTab === 'appointments' && <AppointmentsTab />}
-              {activeTab === 'assistant' && <AssistantTab patient={patient} patients={patients} selectPatient={selectPatient} />}
-            </motion.div>
-          </AnimatePresence>
+          <div className="flex-1 flex flex-col overflow-hidden h-full">
+            {activeTab === 'registry' && <PatientRegistryTab patients={patients} onSelectPatient={(id) => { selectPatient(id); setActiveTab('command'); }} />}
+            {activeTab === 'command' && <ActivePatientProfile patient={patient} onBack={() => setActiveTab('registry')} />}
+            {activeTab === 'imaging' && <ImagingLabTab patients={patients} />}
+            {activeTab === 'pharmacy' && <PharmacyHubTab patients={patients} />}
+            {activeTab === 'insights' && <AIInsightsTab patients={patients} />}
+            {activeTab === 'appointments' && <AppointmentsTab />}
+            {activeTab === 'assistant' && <AssistantTab patient={patient} patients={patients} selectPatient={selectPatient} />}
+          </div>
         </div>
 
+        <AnimatePresence>
+          {showDocProfile && (
+            <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 sm:p-6 md:p-8 overflow-hidden">
+              <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="absolute inset-0 bg-[#0B1412]/95 backdrop-blur-2xl" onClick={() => setShowDocProfile(false)} />
+              <motion.div initial={{ opacity: 0, scale: 0.95, y: 20 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.95, y: 20 }}
+                className="relative w-full max-w-2xl bg-[#0F1F1B] border border-white/5 rounded-[3rem] shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
+                <div className="p-8 border-b border-slate-200 dark:border-white/5 flex items-center justify-between bg-white/[0.02]">
+                  <div className="flex items-center gap-4">
+                    <div className="w-14 h-14 rounded-2xl bg-[#22C55E] flex items-center justify-center text-white shadow-xl shadow-[#22C55E]/20 text-lg font-black">{initials}</div>
+                    <div>
+                      <h3 className="text-xl font-black text-slate-900 dark:text-[#E6F1ED] tracking-tighter uppercase">{realDoctorName}</h3>
+                      <p className="text-[10px] font-black text-[#22C55E] uppercase tracking-widest">{isEditingProfile ? 'Editing Clinical Identity' : 'Medical Practitioner Profile'}</p>
+                    </div>
+                  </div>
+                  <button onClick={() => setShowDocProfile(false)} className="p-3 text-slate-400 dark:text-[#6B8077] hover:text-slate-900 dark:hover:text-[#E6F1ED] hover:bg-slate-100 dark:hover:bg-white/5 rounded-2xl transition-all"><X size={24}/></button>
+                </div>
+                <div className="flex-1 overflow-y-auto p-8 space-y-8">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                    {[
+                      { key: 'name', label: 'Full Clinical Name', val: docData?.name || realDoctorName, icon: User },
+                      { key: 'role', label: 'Role / Designation', val: docData?.role || 'Senior Practitioner', icon: Stethoscope },
+                      { key: 'department', label: 'Clinical Department', val: docData?.department || 'General Medicine', icon: Microscope },
+                      { key: 'license', label: 'License Number', val: docData?.license || 'LIC-2024-8842', icon: ShieldCheck },
+                      { key: 'hospital', label: 'Clinic/Hospital', val: docData?.hospital || 'MediBOT Central Hospital', icon: Heart },
+                      { key: 'fees', label: 'Consultation Fees', val: docData?.fees || '$100.00', icon: Pill },
+                    ].map(({ key, label, val, icon: Icon }) => (
+                      <div key={label} className="p-5 bg-stone-50 dark:bg-white/5 rounded-3xl border border-slate-200 dark:border-white/5 group hover:border-[#22C55E]/30 transition-all">
+                        <div className="flex items-center gap-3 mb-3">
+                          <Icon size={14} className="text-[#22C55E]" />
+                          <span className="text-[10px] font-black text-slate-400 dark:text-[#6B8077] uppercase tracking-widest">{label}</span>
+                        </div>
+                        {isEditingProfile ? (
+                          <input 
+                            type="text" 
+                            value={editFormData[key] || ''} 
+                            onChange={e => setEditFormData({ ...editFormData, [key]: e.target.value })}
+                            className="w-full bg-transparent border-none text-sm font-black text-slate-900 dark:text-[#E6F1ED] focus:ring-0 p-0 placeholder:text-slate-400 dark:placeholder-[#6B8077]"
+                            placeholder={`Enter ${label}...`}
+                          />
+                        ) : (
+                          <p className="text-sm font-black text-slate-900 dark:text-[#E6F1ED] tracking-tight">{val}</p>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                  {!isEditingProfile && (
+                    <div className="p-8 bg-[#22C55E]/5 border border-[#22C55E]/20 rounded-[2rem] flex flex-col items-center text-center space-y-4">
+                      <div className="p-4 bg-white rounded-2xl shadow-xl">
+                        <QRCodeSVG value={`doctor:${auth.currentUser?.uid}`} size={120} level="H" />
+                      </div>
+                      <div>
+                        <p className="text-xs font-black text-slate-900 dark:text-[#E6F1ED] uppercase tracking-widest">Digital Clinical Identity</p>
+                        <p className="text-[10px] text-[#22C55E] font-black uppercase tracking-tighter mt-1">Scan to verify credentials or sync with pharmacy hub</p>
+                      </div>
+                    </div>
+                  )}
+                </div>
+                <div className="p-8 border-t border-slate-200 dark:border-white/5 bg-white/[0.02] flex gap-4">
+                  {isEditingProfile ? (
+                    <>
+                      <button onClick={() => setIsEditingProfile(false)} className="flex-1 py-4 bg-slate-100 dark:bg-white/5 text-slate-900 dark:text-[#E6F1ED] rounded-2xl text-xs font-black uppercase tracking-widest hover:bg-slate-200 dark:hover:bg-white/10 transition-all">Cancel</button>
+                      <button onClick={handleSaveProfile} className="flex-1 py-4 bg-[#22C55E] text-white rounded-2xl text-xs font-black uppercase tracking-widest shadow-lg shadow-[#22C55E]/30 hover:opacity-90 transition-all">Save Changes</button>
+                    </>
+                  ) : (
+                    <button onClick={() => setIsEditingProfile(true)} className="w-full py-4 bg-slate-50 dark:bg-white/5 text-slate-900 dark:text-[#E6F1ED] border border-slate-200 dark:border-white/10 rounded-2xl text-xs font-black uppercase tracking-widest hover:bg-emerald-50 dark:hover:bg-[#22C55E]/10 hover:border-[#22C55E]/30 transition-all">Edit Clinical Profile</button>
+                  )}
+                </div>
+              </motion.div>
+            </div>
+          )}
+        </AnimatePresence>
+
         {hasAlert && activeTab !== 'command' && (
-          <motion.div initial={{ y: 100 }} animate={{ y: 0 }} className="fixed bottom-10 right-10 z-50">
-            <div className="bg-[#EF4444] text-white px-8 py-4 rounded-[2rem] shadow-2xl flex items-center gap-4 border-2 border-white/10 backdrop-blur-md cursor-pointer hover:scale-105 transition-all group" onClick={() => setActiveTab('command')}>
-              <div className="w-10 h-10 bg-white/20 rounded-xl flex items-center justify-center animate-pulse"><AlertTriangle size={20} /></div>
-              <div>
-                <p className="text-[11px] font-black uppercase tracking-widest">Critical Alert Detected</p>
-                <p className="text-[10px] opacity-80 font-black uppercase tracking-tighter">Vital instability in active cohort</p>
+          <motion.div initial={{ y: 100 }} animate={{ y: 0 }} className="fixed bottom-6 right-6 lg:bottom-10 lg:right-10 z-50">
+            <div className="bg-[#EF4444] text-white px-5 lg:px-8 py-3 lg:py-4 rounded-2xl lg:rounded-[2rem] shadow-2xl flex items-center gap-3 lg:gap-4 border-2 border-white/10 backdrop-blur-md cursor-pointer hover:scale-105 active:scale-95 transition-all group" onClick={() => setActiveTab('command')}>
+              <div className="w-8 h-8 lg:w-10 lg:h-10 bg-white/20 rounded-lg lg:rounded-xl flex items-center justify-center animate-pulse flex-shrink-0">
+                <AlertTriangle size={18} className="lg:w-5 lg:h-5" />
               </div>
-              <ChevronRight size={20} className="ml-2 group-hover:translate-x-1 transition-transform" />
+              <div className="min-w-0">
+                <p className="text-[9px] lg:text-[11px] font-black uppercase tracking-widest truncate">Critical Alert</p>
+                <p className="text-[8px] lg:text-[10px] opacity-80 font-black uppercase tracking-tighter truncate hidden sm:block">Vital instability detected</p>
+              </div>
+              <ChevronRight size={16} className="lg:w-5 lg:h-5 ml-1 lg:ml-2 group-hover:translate-x-1 transition-transform flex-shrink-0" />
             </div>
           </motion.div>
         )}
