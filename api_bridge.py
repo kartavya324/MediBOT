@@ -316,12 +316,11 @@ Your goal is to provide high-value, personalized medical insights by synthesizin
 async def analyze_xray(request: Request, request_body: VisionRequest):
     """
     HYBRID VISION PIPELINE:
-    1. Runs local ResNet101 for specialized lung disease detection (Project Novelty).
-    2. Runs Gemini Vision for general clinical cross-validation (Accuracy).
+    1. Runs local ResNet101 for specialized lung disease detection if available.
+    2. Runs Gemini Vision for general clinical cross-validation and fallback.
     """
     try:
         from PIL import Image
-        from Lung_Disease_Detection_CNN_Model import predict_lung_disease
 
         # 1. Prepare Image
         image_data = request_body.image_base64
@@ -330,26 +329,64 @@ async def analyze_xray(request: Request, request_body: VisionRequest):
         image_bytes = base64.b64decode(image_data)
         image = Image.open(io.BytesIO(image_bytes))
 
-        # 2. Local Specialist Model (Project Novelty)
-        print("[Vision] Running Local ResNet101 Specialist...")
+        # Check if local PyTorch model dependencies are available
+        has_local_model = False
         try:
-            pred_class = predict_lung_disease(image, CNN_WEIGHTS_PATH)
-        except Exception as e:
-            print(f"Local model error: {e}")
-            pred_class = "Error"
+            import torch
+            from Lung_Disease_Detection_CNN_Model import predict_lung_disease
+            has_local_model = True
+        except ImportError:
+            print("[Vision] Local PyTorch specialist is not installed. Using Gemini Specialist fallback mode...")
 
-        # 3. Gemini Vision Cross-Validation (The "Brain")
-        print("[Vision] Running Gemini Cross-Validation...")
-        prompt = """Analyze this medical image. 
-        1. Identify exactly what this is (e.g., Chest X-ray, Bone X-ray, MRI, etc.).
-        2. Identify any visible abnormalities or findings.
-        3. Provide a brief 2-sentence clinical impression.
-        If this is NOT a chest X-ray, explicitly state what part of the body it is."""
+        pred_class = "Normal"
+        if has_local_model:
+            # 2. Local Specialist Model (Project Novelty)
+            print("[Vision] Running Local ResNet101 Specialist...")
+            try:
+                pred_class = predict_lung_disease(image, CNN_WEIGHTS_PATH)
+            except Exception as e:
+                print(f"Local model error: {e}")
+                pred_class = "Error"
+        else:
+            print("[Vision] Running in Gemini Specialist Mode...")
+
+        # 3. Gemini Vision Cross-Validation / Classification (The "Brain")
+        print("[Vision] Running Gemini Analysis...")
+        if not has_local_model:
+            prompt = """Analyze this medical image. 
+            1. Identify exactly what this is (e.g., Chest X-ray, Bone X-ray, MRI, etc.).
+            2. Identify any visible abnormalities or findings.
+            3. Provide a brief 2-sentence clinical impression.
+            4. If this is a chest X-ray, classify it into exactly one of these categories: COVID, Normal, Pneumonia, Pneumothorax, Tuberculosis.
+            If this is NOT a chest X-ray, explicitly state what part of the body it is.
+            
+            IMPORTANT: If this is a chest X-ray, please output the classification category on a new line at the very end of your response exactly like: "CLASSIFICATION: <category>" where category is one of: COVID, Normal, Pneumonia, Pneumothorax, Tuberculosis.
+            """
+        else:
+            prompt = """Analyze this medical image. 
+            1. Identify exactly what this is (e.g., Chest X-ray, Bone X-ray, MRI, etc.).
+            2. Identify any visible abnormalities or findings.
+            3. Provide a brief 2-sentence clinical impression.
+            If this is NOT a chest X-ray, explicitly state what part of the body it is."""
         
         # Convert to RGB for Gemini if needed
         gemini_img = image.convert('RGB') if image.mode != 'RGB' else image
         gemini_resp = gemini_model.generate_content([prompt, gemini_img])
         gemini_insight = gemini_resp.text
+
+        if not has_local_model:
+            # Parse classification category from Gemini response
+            parsed_class = "Normal"
+            for line in gemini_insight.split("\n"):
+                if "CLASSIFICATION:" in line:
+                    cat = line.split("CLASSIFICATION:")[1].strip().replace(".", "")
+                    if cat in ['COVID', 'Normal', 'Pneumonia', 'Pneumothorax', 'Tuberculosis']:
+                        parsed_class = cat
+                        break
+            pred_class = parsed_class
+            # Clean up the CLASSIFICATION marker from the clinical insight display
+            if "CLASSIFICATION:" in gemini_insight:
+                gemini_insight = gemini_insight.split("CLASSIFICATION:")[0].strip()
 
         # 4. Hybrid Logic: Determine if we should prioritize Gemini's insight
         is_chest_xray = "chest" in gemini_insight.lower() or "lung" in gemini_insight.lower()
@@ -370,15 +407,15 @@ async def analyze_xray(request: Request, request_body: VisionRequest):
         # If it IS a chest X-ray, combine both
         if pred_class == "Normal":
             severity = "Low"
-            recommendation = "No pulmonology abnormalities detected by local specialist."
+            recommendation = "No pulmonology abnormalities detected by local specialist." if has_local_model else "No pulmonology abnormalities detected by Gemini specialist."
             confidence = "95%"
         elif pred_class in ["Pneumonia", "COVID", "Tuberculosis", "Pneumothorax"]:
             severity = "High" if pred_class != "Tuberculosis" else "Critical"
-            recommendation = f"Local specialist detected {pred_class}. Cross-referencing with Gemini insights."
+            recommendation = f"Specialist detected {pred_class}. Cross-referencing with Gemini insights."
             confidence = "90%"
         else:
             severity = "Unknown"
-            recommendation = "Local analysis inconclusive."
+            recommendation = "Specialist analysis inconclusive."
             confidence = "0%"
 
         return {
@@ -402,10 +439,8 @@ async def extract_report(request: Request, request_body: VisionRequest):
     """
     OCR ENDPOINT:
     Extracts text from medical reports and uses the LLM to structure the information.
+    Falls back gracefully to Gemini Vision OCR when local EasyOCR is offline/uninstalled.
     """
-    if reader is None:
-        raise HTTPException(status_code=503, detail="OCR engine is offline.")
-
     try:
         # Decode the image
         image_data = request_body.image_base64
@@ -415,16 +450,18 @@ async def extract_report(request: Request, request_body: VisionRequest):
         image_bytes = base64.b64decode(image_data)
         image = Image.open(io.BytesIO(image_bytes))
         
-        # Run OCR
-        print("[Vision] Running OCR on medical report...")
-        result = reader.readtext(np.array(image))
-        extracted_text = " ".join([res[1] for res in result])
-        
-        if not extracted_text.strip():
-            return {"role": "ai", "text": "I couldn't detect any readable text in the image. Please ensure the photo is clear and well-lit.", "type": "text"}
+        if reader is not None:
+            # Run OCR using local EasyOCR
+            print("[Vision] Running OCR on medical report using EasyOCR...")
+            import numpy as np
+            result = reader.readtext(np.array(image))
+            extracted_text = " ".join([res[1] for res in result])
+            
+            if not extracted_text.strip():
+                return {"role": "ai", "text": "I couldn't detect any readable text in the image. Please ensure the photo is clear and well-lit.", "type": "text"}
 
-        # Structuring with LLM (Zero-shot extraction)
-        prompt = f"""You are a medical data extraction specialist. 
+            # Structuring with LLM (Zero-shot extraction)
+            prompt = f"""You are a medical data extraction specialist. 
 Extracted raw text from a medical report: '{extracted_text}'
 
 Task: Identify and extract the following clinical entities in valid JSON format:
@@ -435,11 +472,27 @@ Task: Identify and extract the following clinical entities in valid JSON format:
 If an entity is not found, leave it as an empty list/dictionary.
 Do NOT repeat the task instructions. Output ONLY valid JSON.
 """
+            extraction_response = gemini_model.generate_content(prompt)
+            json_str = extraction_response.text.strip()
+        else:
+            # Fallback to direct Gemini Vision OCR (zero local memory usage!)
+            print("[Vision] EasyOCR offline. Running OCR on medical report using Gemini Vision OCR...")
+            prompt = """You are a medical data extraction specialist.
+Analyze this medical report image. Identify and extract the following clinical entities in valid JSON format:
+- Allergies (list)
+- Active Medications (list)
+- Vitals (dictionary with keys like heart_rate, blood_pressure, spo2 if found)
 
-        extraction_response = gemini_model.generate_content(prompt)
-        
+If an entity is not found, leave it as an empty list/dictionary.
+Do NOT repeat the task instructions. Output ONLY valid JSON.
+"""
+            # Convert to RGB for Gemini if needed
+            gemini_img = image.convert('RGB') if image.mode != 'RGB' else image
+            extraction_response = gemini_model.generate_content([prompt, gemini_img])
+            json_str = extraction_response.text.strip()
+            extracted_text = "Extracted directly via Gemini Vision OCR."
+
         # Clean up common LLM formatting issues
-        json_str = extraction_response.text.strip()
         if "```json" in json_str:
             json_str = json_str.split("```json")[1].split("```")[0].strip()
         elif "{" in json_str:
@@ -448,8 +501,8 @@ Do NOT repeat the task instructions. Output ONLY valid JSON.
         structured_data = {}
         try:
             structured_data = json.loads(json_str)
-        except:
-            print(f"Failed to parse LLM JSON: {json_str}")
+        except Exception as parse_err:
+            print(f"Failed to parse LLM JSON: {json_str}, error: {parse_err}")
 
         return {
             "role": "ai",
@@ -462,6 +515,7 @@ Do NOT repeat the task instructions. Output ONLY valid JSON.
     except Exception as e:
         traceback.print_exc()
         raise HTTPException(status_code=500, detail=f"OCR Extraction Error: {str(e)}")
+
 
 @app.post("/api/chat/simple")
 async def simple_chat(request: ChatRequest):
