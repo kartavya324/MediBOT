@@ -38,57 +38,78 @@ export default function App() {
   }, [isDarkMode]);
 
   useEffect(() => {
+    // 6-second safety timeout to bypass infinite loading if Firebase hangs
+    const timer = setTimeout(() => {
+      setIsInitializing((prev) => {
+        if (prev) {
+          console.warn('Firebase initialization timed out after 6 seconds. Bypassing loading screen to prevent hang.');
+        }
+        return false;
+      });
+    }, 6000);
+
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
-      if (user) {
-        const userDocRef = doc(db, 'users', user.uid);
-        const userDoc = await getDoc(userDocRef);
-        let detectedRole: Role = 'patient';
+      try {
+        if (user) {
+          const userDocRef = doc(db, 'users', user.uid);
+          const userDoc = await getDoc(userDocRef);
+          let detectedRole: Role = 'patient';
 
-        if (userDoc.exists()) {
-          const userData = userDoc.data();
-          detectedRole = userData.role as Role;
-          setRole(detectedRole);
-        }
-
-        setUserEmail(user.email || '');
-        setUid(user.uid);
-
-        if (detectedRole === 'patient') {
-          let profile = await getPatient(user.uid);
-
-          const hasCompletedSetup =
-            userDoc.exists() && userDoc.data().hasCompletedSetup === true;
-          const hasValidName = profile?.name && profile.name.trim().length > 0;
-
-          if (!profile) {
-            await createPatientDoc(user.uid, user.displayName || '');
-            profile = await getPatient(user.uid);
-            setShowProfileSetup(true);
-          } else if (!hasCompletedSetup || !hasValidName) {
-            setShowProfileSetup(true);
+          if (userDoc.exists()) {
+            const userData = userDoc.data();
+            detectedRole = userData.role as Role;
+            setRole(detectedRole);
           }
 
-          if (profile) setProfile(profile);
-        }
+          setUserEmail(user.email || '');
+          setUid(user.uid);
 
-        // Doctor setup gatekeeper
-        if (detectedRole === 'doctor') {
-          const hasCompletedSetup =
-            userDoc.exists() && userDoc.data().hasCompletedSetup === true;
-          if (!hasCompletedSetup) {
-            setShowDoctorSetup(true);
+          if (detectedRole === 'patient') {
+            let profile = await getPatient(user.uid);
+
+            const hasCompletedSetup =
+              userDoc.exists() && userDoc.data().hasCompletedSetup === true;
+            const hasValidName = profile?.name && profile.name.trim().length > 0;
+
+            if (!profile) {
+              await createPatientDoc(user.uid, user.displayName || '');
+              profile = await getPatient(user.uid);
+              setShowProfileSetup(true);
+            } else if (!hasCompletedSetup || !hasValidName) {
+              setShowProfileSetup(true);
+            }
+
+            if (profile) setProfile(profile);
           }
-        }
 
-        setIsLoggedIn(true);
-      } else {
+          // Doctor setup gatekeeper
+          if (detectedRole === 'doctor') {
+            const hasCompletedSetup =
+              userDoc.exists() && userDoc.data().hasCompletedSetup === true;
+            if (!hasCompletedSetup) {
+              setShowDoctorSetup(true);
+            }
+          }
+
+          setIsLoggedIn(true);
+        } else {
+          setIsLoggedIn(false);
+          clearStore();
+        }
+      } catch (err: any) {
+        console.error('Failed to restore auth session or fetch user data:', err);
         setIsLoggedIn(false);
         clearStore();
+      } finally {
+        setIsInitializing(false);
+        clearTimeout(timer);
       }
-      setIsInitializing(false);
     });
 
-    return () => unsubscribe();
+    return () => {
+      unsubscribe();
+      clearTimeout(timer);
+    };
   }, []);
 
   const handleLogin = (selectedRole: Role, email: string) => {

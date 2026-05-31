@@ -9,7 +9,7 @@ import { QRCodeSVG } from 'qrcode.react';
 import ErrorBoundary from './ErrorBoundary';
 import ProfileEditor from './ProfileEditor';
 import { saveChatMessage, getChatHistory, saveDiagnosticResult, saveVitalsSnapshot, getUnsyncedRecords, markAsSynced } from '../lib/db';
-import { collection, addDoc, getDocs, getDoc, updateDoc, deleteDoc, doc, serverTimestamp, orderBy, query, where, onSnapshot } from 'firebase/firestore';
+import { collection, addDoc, getDocs, getDoc, updateDoc, deleteDoc, doc, serverTimestamp, orderBy, query, where, onSnapshot, limit } from 'firebase/firestore';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { db as firestoreDb, storage } from '../lib/firebase';
 import { auth } from '../lib/firebase';
@@ -1224,7 +1224,7 @@ const PrescriptionManager = ({ uid }: { uid: string | null }) => {
     if (!uid) { setLoadingMeds(false); return; }
     const q = query(collection(firestoreDb, 'prescriptions'), where('patientId', '==', uid));
     const unsubscribe = onSnapshot(q, (snap) => {
-      const docs = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+      const docs = snap.docs.map(d => ({ id: d.id, ...d.data() })) as any[];
       docs.sort((a: any, b: any) => new Date(b.timestamp || 0).getTime() - new Date(a.timestamp || 0).getTime());
       
       const flatMeds: any[] = [];
